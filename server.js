@@ -4,6 +4,7 @@ const PORT = 3000;
 
 // In-memory store: userCode -> { username, lastSeen, tunnelUrl, online }
 const players = {};
+let invites = [];
 
 function parseJson(req) {
     return new Promise((resolve, reject) => {
@@ -44,13 +45,39 @@ const server = http.createServer(async (req, res) => {
         const data = await parseJson(req);
         const { userCode } = data;
 
+        if (url === '/api/invite') {
+            const { from, to, tunnelUrl } = data;
+            if (!from || !to || !tunnelUrl) {
+                sendJson(res, 400, { error: 'Missing parameters' });
+                return;
+            }
+            const sender = players[from];
+            const senderName = sender ? sender.username : 'Unknown Player';
+            const senderUuid = sender ? sender.uuid : '';
+
+            // Remove existing invite between same pair
+            invites = invites.filter(inv => !(inv.from === from && inv.to === to));
+
+            invites.push({
+                from,
+                senderName,
+                senderUuid,
+                to,
+                tunnelUrl,
+                timestamp: Date.now()
+            });
+            console.log(`[Invite] ${senderName} (${from}) invited (${to}) to join at: ${tunnelUrl}`);
+            sendJson(res, 200, { success: true });
+            return;
+        }
+
         if (!userCode) {
             sendJson(res, 400, { error: 'Missing userCode' });
             return;
         }
 
         if (url === '/api/register') {
-            const { username } = data;
+            const { username, uuid } = data;
             if (!username) {
                 sendJson(res, 400, { error: 'Missing username' });
                 return;
@@ -58,11 +85,12 @@ const server = http.createServer(async (req, res) => {
 
             players[userCode] = {
                 username,
+                uuid: uuid || '',
                 lastSeen: Date.now(),
                 tunnelUrl: players[userCode] ? players[userCode].tunnelUrl : '',
                 online: true
             };
-            console.log(`[Register] Player ${username} (${userCode}) is online.`);
+            console.log(`[Register] Player ${username} (${userCode}) is online with UUID ${uuid}.`);
             sendJson(res, 200, { success: true });
             return;
         }
@@ -104,12 +132,23 @@ const server = http.createServer(async (req, res) => {
                 return {
                     userCode: code,
                     username: friend ? friend.username : 'Unknown Player',
+                    uuid: friend ? friend.uuid : '',
                     online: friend ? friend.online : false,
                     tunnelUrl: friend ? friend.tunnelUrl : ''
                 };
             });
 
-            sendJson(res, 200, { friends: friendsStatus });
+            // Find active invites for this user
+            const now = Date.now();
+            const activeInvites = invites.filter(inv => inv.to === userCode && now - inv.timestamp < 60000)
+                                         .map(inv => ({
+                                             senderCode: inv.from,
+                                             senderName: inv.senderName,
+                                             senderUuid: inv.senderUuid || '',
+                                             tunnelUrl: inv.tunnelUrl
+                                         }));
+
+            sendJson(res, 200, { friends: friendsStatus, invites: activeInvites });
             return;
         }
     }
@@ -130,6 +169,9 @@ setInterval(() => {
             console.log(`[Timeout] Player ${player.username} (${code}) went offline due to inactive heartbeat.`);
         }
     }
+
+    // Clean up expired invites
+    invites = invites.filter(inv => now - inv.timestamp < 60000);
 }, 5000);
 
 server.listen(PORT, () => {
