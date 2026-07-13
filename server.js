@@ -71,6 +71,18 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
+        if (url === '/api/reject-invite') {
+            const { from, to } = data;
+            if (!from || !to) {
+                sendJson(res, 400, { error: 'Missing parameters' });
+                return;
+            }
+            invites = invites.filter(inv => !(inv.from === from && inv.to === to));
+            console.log(`[Reject Invite] Invite from ${from} to ${to} rejected.`);
+            sendJson(res, 200, { success: true });
+            return;
+        }
+
         if (!userCode) {
             sendJson(res, 400, { error: 'Missing userCode' });
             return;
@@ -88,20 +100,22 @@ const server = http.createServer(async (req, res) => {
                 uuid: uuid || '',
                 lastSeen: Date.now(),
                 tunnelUrl: players[userCode] ? players[userCode].tunnelUrl : '',
+                isHosting: players[userCode] ? players[userCode].isHosting : false,
                 online: true
             };
-            console.log(`[Register] Player ${username} (${userCode}) is online with UUID ${uuid}.`);
+            console.log(`[Register] Player ${username} (${userCode}) is online.`);
             sendJson(res, 200, { success: true });
             return;
         }
 
         if (url === '/api/host') {
-            const { tunnelUrl } = data;
+            const { tunnelUrl, isHosting } = data;
             if (players[userCode]) {
                 players[userCode].tunnelUrl = tunnelUrl || '';
+                players[userCode].isHosting = true;
                 players[userCode].lastSeen = Date.now();
                 players[userCode].online = true;
-                console.log(`[Host] Player ${players[userCode].username} (${userCode}) started hosting at: ${tunnelUrl}`);
+                console.log(`[Host] ${players[userCode].username} (${userCode}) hosting. tunnel=${tunnelUrl || 'none yet'}`);
             }
             sendJson(res, 200, { success: true });
             return;
@@ -110,8 +124,9 @@ const server = http.createServer(async (req, res) => {
         if (url === '/api/stop-host') {
             if (players[userCode]) {
                 players[userCode].tunnelUrl = '';
+                players[userCode].isHosting = false;
                 players[userCode].lastSeen = Date.now();
-                console.log(`[Stop Host] Player ${players[userCode].username} (${userCode}) stopped hosting.`);
+                console.log(`[Stop Host] ${players[userCode].username} (${userCode}) stopped hosting.`);
             }
             sendJson(res, 200, { success: true });
             return;
@@ -134,7 +149,8 @@ const server = http.createServer(async (req, res) => {
                     username: friend ? friend.username : 'Unknown Player',
                     uuid: friend ? friend.uuid : '',
                     online: friend ? friend.online : false,
-                    tunnelUrl: friend ? friend.tunnelUrl : ''
+                    tunnelUrl: friend ? friend.tunnelUrl : '',
+                    isHosting: friend ? (friend.isHosting || false) : false
                 };
             });
 
@@ -159,14 +175,15 @@ const server = http.createServer(async (req, res) => {
 // Cleanup loop: check for inactive heartbeats every 5 seconds
 setInterval(() => {
     const now = Date.now();
-    const TIMEOUT = 12000; // 12 seconds timeout
+    const TIMEOUT = 15000; // 15 seconds timeout (polling is every 3s)
 
     for (const code in players) {
         const player = players[code];
         if (player.online && now - player.lastSeen > TIMEOUT) {
             player.online = false;
             player.tunnelUrl = '';
-            console.log(`[Timeout] Player ${player.username} (${code}) went offline due to inactive heartbeat.`);
+            player.isHosting = false;
+            console.log(`[Timeout] ${player.username} (${code}) went offline.`);
         }
     }
 
