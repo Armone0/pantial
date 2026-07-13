@@ -1,0 +1,10 @@
+{
+  "name": "pantial-presence-server",
+  "version": "1.0.0",
+  "description": "FreeLAN / Pantial presence server for Minecraft",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {}
+}
