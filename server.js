@@ -140,7 +140,7 @@ const server = http.createServer(async (req, res) => {
 
             // Find active invites for this user
             const now = Date.now();
-            const activeInvites = invites.filter(inv => inv.to === userCode && now - inv.timestamp < 60000)
+            const activeInvites = invites.filter(inv => inv.to === userCode && now - inv.timestamp < 600000)
                                          .map(inv => ({
                                              senderCode: inv.from,
                                              senderName: inv.senderName,
@@ -170,8 +170,8 @@ setInterval(() => {
         }
     }
 
-    // Clean up expired invites
-    invites = invites.filter(inv => now - inv.timestamp < 60000);
+    // Clean up expired invites (10 minutes)
+    invites = invites.filter(inv => now - inv.timestamp < 600000);
 }, 5000);
 
 server.listen(PORT, () => {
