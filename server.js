@@ -6,6 +6,23 @@ const PORT = 3000;
 const players = {};
 let invites = [];
 
+// Automatic cleanup: Mark players offline after 60 seconds of inactivity, expire invites after 5 minutes
+const HEARTBEAT_TIMEOUT_MS = 60 * 1000;
+const INVITE_EXPIRATION_MS = 5 * 60 * 1000;
+
+setInterval(() => {
+    const now = Date.now();
+    for (const [code, p] of Object.entries(players)) {
+        if (p.online && (now - p.lastSeen > HEARTBEAT_TIMEOUT_MS)) {
+            p.online = false;
+            p.isHosting = false;
+            p.tunnelUrl = '';
+            console.log(`[Timeout] ${p.username} (${code}) inactive, marked offline.`);
+        }
+    }
+    invites = invites.filter(inv => now - inv.timestamp < INVITE_EXPIRATION_MS);
+}, 15000);
+
 function parseJson(req) {
     return new Promise((resolve, reject) => {
         let body = '';
