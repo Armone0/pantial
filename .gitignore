@@ -1,0 +1,29 @@
+# Binaries & Archives
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+*.exe
+*.dll
+
+# Gradle & Build artifacts
+.gradle/
+build/
+bin/
+out/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.idea/
+*.iml
+.vscode/
+
+# Environment
+.env

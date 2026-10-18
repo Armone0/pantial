@@ -1,20 +1,20 @@
 # Pantial Minecraft Çoklu Sürüm Yol Haritası (Roadmap)
 
-Pantial; `e4mc (cracked)` tünel modu ile `FreeLAN` varlık/arkadaş istemcisini bir araya getirerek Minecraft'ta port açmadan ve orijinal hesap zorunluluğu olmadan arkadaşların tek tıkla birlikte oynamasını sağlar.
+Pantial; `e4mc` tünel protokolü ile `FreeLAN` varlık/arkadaş istemcisini bir araya getirerek Minecraft'ta port açmadan yerel ağ dünyalarının paylaşılmasını sağlar.
 
-Her hafta sonu (Cumartesi & Pazar) otomasyon sıradaki sürüm hedefini veya iyileştirmeyi tamamlayıp test eder ve repoya commit atar.
+Her hafta sonu (Cumartesi & Pazar) otomasyon sıradaki sürüm hedefini veya altyapı geliştirmesini tamamlayıp test eder ve repoya commit atar.
 
 ---
 
 ### Sürüm Destek Durumu
 
 - [x] **1.21.1 (Modern Standart):**
-  - [x] Fabric: `e4mc-fabric-26.1.2-cracked.jar` + `freelan-1.0.0.jar`
-  - [x] NeoForge: `e4mc-neoforge-1.21.1-cracked.jar` + `freelan-neoforge-1.0.0.jar`
+  - [x] Fabric: Mod metadata ve FreeLAN istemci entegrasyonu
+  - [x] NeoForge: Mod yapılandırması ve Mixin eşleşmesi
   - [x] Varlık sunucusu entegrasyonu ve tünel regex eşleşmesi
 
-- [ ] **1.20.1 (Altın Çağ Mod Paketi Sürümü):**
-  - [ ] Fabric: e4mc 1.20.1 cracked yaması ve FreeLAN Mixin portu
+- [ ] **1.20.1 (LTS Mod Paketi Sürümü):**
+  - [ ] Fabric: 1.20.1 FreeLAN Mixin portu
   - [ ] Forge / NeoForge: 1.20.1 uyumlu bağlantı ve arayüz sınıfları
   - [ ] 1.20.1 ağ paketi ve ekran yöneticisi testleri
 
