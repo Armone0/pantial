@@ -38,6 +38,7 @@ Her hafta sonu (Cumartesi & Pazar) otomasyon sıradaki sürüm hedefini veya alt
 
 ### Sunucu ve Altyapı İyileştirmeleri
 - [x] `server.js`: Bağlantı kopmalarında otomatik zaman aşımı (heartbeat timeout) ekleme
-- [ ] `server.js`: Arkadaş kodları için daha kısa ve akılda kalıcı format desteği
+- [x] `server.js`: Arkadaş kodları için daha kısa ve akılda kalıcı format (`PANT-XXXX`) ve otomatik üretim desteği
+- [x] Otomatik kurulum ve başlatma scriptleri (Windows `start.bat` & Linux `start.sh`)
+- [x] Otomatik test paketi (`test_server.js` ve `npm test`)
 - [ ] Mod içi: Sunucuya bağlanamadığında kullanıcıya hata mesajı gösteren bildirim paneli
-- [ ] Otomatik kurulum scripti (Windows & Linux için tek tıkla çalıştırılabilir başlatıcı)
