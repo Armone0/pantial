@@ -1,0 +1,30 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+issueTrackerURL="https://github.com/Armone0/pantial/issues"
+
+[[mods]]
+modId="freelan"
+version="1.0.0-1.20.1"
+displayName="FreeLAN (Pantial) Forge"
+displayURL="https://github.com/Armone0/pantial"
+logoFile="logo.png"
+credits="Pantial Community"
+authors="Antigravity, Armone"
+description='''
+Essential benzeri P2P yerel ağ ve varlık istemcisi modu. Minecraft 1.20.1 Forge LTS sürümü için uyarlandı.
+'''
+
+[[dependencies.freelan]]
+modId="forge"
+mandatory=true
+versionRange="[47.1.0,)"
+ordering="NONE"
+side="CLIENT"
+
+[[dependencies.freelan]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1, 1.20.2)"
+ordering="NONE"
+side="CLIENT"

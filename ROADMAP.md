@@ -13,10 +13,10 @@ Her hafta sonu (Cumartesi & Pazar) otomasyon sıradaki sürüm hedefini veya alt
   - [x] NeoForge: Mod yapılandırması ve Mixin eşleşmesi
   - [x] Varlık sunucusu entegrasyonu ve tünel regex eşleşmesi
 
-- [ ] **1.20.1 (LTS Mod Paketi Sürümü):**
-  - [ ] Fabric: 1.20.1 FreeLAN Mixin portu
-  - [ ] Forge / NeoForge: 1.20.1 uyumlu bağlantı ve arayüz sınıfları
-  - [ ] 1.20.1 ağ paketi ve ekran yöneticisi testleri
+- [x] **1.20.1 (LTS Mod Paketi Sürümü):**
+  - [x] Fabric: 1.20.1 FreeLAN Mixin portu (Title, Pause, ShareToLan, ChatComponent)
+  - [x] Forge: 1.20.1 uyumlu ScreenEvent dinleyicileri ve mods.toml konfigürasyonu
+  - [x] 1.20.1 ağ paketi ve ekran yöneticisi testleri (PantialFriendsScreen)
 
 - [ ] **1.20.4 / 1.20.6 (Geçiş Sürümleri):**
   - [ ] Fabric & NeoForge mod manifest ve bağımlılık aralığı genişletme

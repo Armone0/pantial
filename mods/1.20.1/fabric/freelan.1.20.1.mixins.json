@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "com.example.freelan.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "client": [
+    "ShareToLanScreenMixin",
+    "TitleScreenMixin",
+    "PauseScreenMixin",
+    "ChatComponentMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

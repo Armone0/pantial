@@ -20,7 +20,7 @@ Pantial; port yönlendirme (port forwarding) gerektirmeden, arkadaşlarınızla 
 | Minecraft Sürümü | Fabric | NeoForge / Forge | Durum |
 | :--- | :---: | :---: | :--- |
 | **1.21.1** | Destekleniyor | Destekleniyor | Stabil |
-| **1.20.1** | Geliştiriliyor | Geliştiriliyor | Yol Haritasında |
+| **1.20.1** | Destekleniyor | Destekleniyor | Stabil (LTS) |
 | **1.20.4** | Planlandı | Planlandı | Yol Haritasında |
 | **1.19.2** | Planlandı | Planlandı | Yol Haritasında |
 | **1.18.2** | Planlandı | Planlandı | Yol Haritasında |

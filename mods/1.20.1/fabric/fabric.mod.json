@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "freelan",
+  "name": "FreeLAN (Pantial)",
+  "version": "1.0.0-1.20.1",
+  "description": "Essential benzeri P2P yerel ağ ve varlık istemcisi modu. Minecraft 1.20.1 LTS sürümü için port edildi.",
+  "authors": [
+    "Antigravity",
+    "Armone"
+  ],
+  "contact": {
+    "homepage": "https://github.com/Armone0/pantial"
+  },
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.example.freelan.FreeLAN"
+    ],
+    "main": [
+      "com.example.freelan.FreeLAN"
+    ]
+  },
+  "mixins": [
+    "freelan.1.20.1.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.14.21",
+    "minecraft": ">=1.20.1 <=1.20.2",
+    "java": ">=17"
+  },
+  "suggests": {
+    "e4mc": ">=4.0.0"
+  }
+}

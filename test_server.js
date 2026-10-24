@@ -1,5 +1,7 @@
 const http = require('http');
 const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
 const { server, generateFriendCode, normalizeCode } = require('./server');
 
 const TEST_PORT = 3999;
@@ -29,7 +31,7 @@ function request(options, data = null) {
 }
 
 async function runTests() {
-    console.log('--- Pantial Varlık Sunucusu Test Paketi Başlatılıyor ---');
+    console.log('--- Pantial Varlık Sunucusu ve Mod Paketleri Test Paketi Başlatılıyor ---');
 
     await new Promise((resolve) => server.listen(TEST_PORT, resolve));
     console.log(`[Test] Test sunucusu port ${TEST_PORT} üzerinde açıldı.`);
@@ -167,8 +169,30 @@ async function runTests() {
         assert.strictEqual(aliceGetStatus.data.tunnelUrl, '');
         console.log('✓ Test 9: POST /api/stop-host ve GET /api/status sorgusu başarılı.');
 
+        // Test 10: 1.20.1 Mod Yapılandırması ve Dosya Doğrulaması
+        const fabricModPath = path.join(__dirname, 'mods', '1.20.1', 'fabric', 'fabric.mod.json');
+        const mixinsPath = path.join(__dirname, 'mods', '1.20.1', 'fabric', 'freelan.1.20.1.mixins.json');
+        const forgeModsTomlPath = path.join(__dirname, 'mods', '1.20.1', 'forge', 'META-INF', 'mods.toml');
+
+        assert(fs.existsSync(fabricModPath), 'fabric.mod.json mevcut olmalı');
+        const fabricMod = JSON.parse(fs.readFileSync(fabricModPath, 'utf8'));
+        assert.strictEqual(fabricMod.id, 'freelan');
+        assert(fabricMod.depends.minecraft.includes('1.20.1'), 'Minecraft 1.20.1 sürüm kısıtlaması içermeli');
+        assert.strictEqual(fabricMod.depends.java, '>=17', 'Java 17 gereksinimi belirtilmeli');
+
+        assert(fs.existsSync(mixinsPath), 'freelan.1.20.1.mixins.json mevcut olmalı');
+        const mixinsJson = JSON.parse(fs.readFileSync(mixinsPath, 'utf8'));
+        assert.strictEqual(mixinsJson.compatibilityLevel, 'JAVA_17', 'Mixin Java 17 uyumluluğu kontrolü');
+
+        assert(fs.existsSync(forgeModsTomlPath), 'Forge mods.toml mevcut olmalı');
+        const modsToml = fs.readFileSync(forgeModsTomlPath, 'utf8');
+        assert(modsToml.includes('modId="freelan"'), 'Forge modId freelan olmalı');
+        assert(modsToml.includes('1.20.1'), 'Forge 1.20.1 bağımlılığı içermeli');
+
+        console.log('✓ Test 10: Minecraft 1.20.1 Fabric ve Forge mod manifest ve Mixin doğrulaması başarılı.');
+
         console.log('\n========================================');
-        console.log('TÜM TESTLER BAŞARIYLA TAMAMLANDI (100% OK)');
+        console.log('TÜM TESTLER BAŞARIYLA TAMAMLANDI (10/10 OK)');
         console.log('========================================\n');
         process.exitCode = 0;
     } catch (err) {
