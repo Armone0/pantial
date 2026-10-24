@@ -2,7 +2,7 @@ const http = require('http');
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
-const { server, generateFriendCode, normalizeCode } = require('./server');
+const { server, players, invites, generateFriendCode, normalizeCode } = require('./server');
 
 const TEST_PORT = 3999;
 
@@ -31,7 +31,9 @@ function request(options, data = null) {
 }
 
 async function runTests() {
-    console.log('--- Pantial Varlık Sunucusu ve Mod Paketleri Test Paketi Başlatılıyor ---');
+    console.log('========================================================');
+    console.log('--- Pantial Varlık Sunucusu & Mod Doğrulama Testi ---');
+    console.log('========================================================');
 
     await new Promise((resolve) => server.listen(TEST_PORT, resolve));
     console.log(`[Test] Test sunucusu port ${TEST_PORT} üzerinde açıldı.`);
@@ -42,6 +44,7 @@ async function runTests() {
         assert(code1.startsWith('PANT-'), 'Kod PANT- ile başlamalı');
         assert.strictEqual(code1.length, 9, 'Kod 9 karakter (PANT-XXXX) olmalı');
         assert.strictEqual(normalizeCode('  pant-12ab  '), 'PANT-12AB', 'Normalizasyon boşlukları temizlemeli ve büyük harf yapmalı');
+        assert.strictEqual(normalizeCode(null), '', 'Null girdi boş string dönmeli');
         console.log('✓ Test 1: Arkadaş kodu üretimi ve format normalizasyonu başarılı.');
 
         // Test 2: Sağlık Kontrolü (GET /api/health)
@@ -54,6 +57,7 @@ async function runTests() {
         assert.strictEqual(healthRes.statusCode, 200);
         assert.strictEqual(healthRes.data.status, 'ok');
         assert.strictEqual(healthRes.data.service, 'pantial-presence-server');
+        assert(typeof healthRes.data.uptimeSeconds === 'number');
         console.log('✓ Test 2: GET /api/health sağlık kontrolü başarılı.');
 
         // Test 3: Kod Üretim API (GET /api/generate-code)
@@ -65,6 +69,7 @@ async function runTests() {
         });
         assert.strictEqual(genRes.statusCode, 200);
         assert(genRes.data.userCode.startsWith('PANT-'));
+        assert.strictEqual(genRes.data.format, 'PANT-XXXX');
         console.log('✓ Test 3: GET /api/generate-code API başarılı.');
 
         // Test 4: Oyuncu Kaydı (POST /api/register)
@@ -88,7 +93,19 @@ async function runTests() {
         assert(bobCode.startsWith('PANT-'));
         console.log(`✓ Test 4: POST /api/register kayıtları başarılı (Alice: PANT-ALIC, Bob: ${bobCode}).`);
 
-        // Test 5: Yerel Ağ Dünyasını Paylaşma (POST /api/host)
+        // Test 5: Oyuncu Listesi (GET /api/players)
+        const playersRes = await request({
+            hostname: '127.0.0.1',
+            port: TEST_PORT,
+            path: '/api/players',
+            method: 'GET'
+        });
+        assert.strictEqual(playersRes.statusCode, 200);
+        assert(playersRes.data.totalCount >= 2);
+        assert(playersRes.data.onlineCount >= 2);
+        console.log('✓ Test 5: GET /api/players aktif oyuncu listesi sorgusu başarılı.');
+
+        // Test 6: Yerel Ağ Dünyasını Paylaşma (POST /api/host)
         const hostRes = await request({
             hostname: '127.0.0.1',
             port: TEST_PORT,
@@ -96,9 +113,9 @@ async function runTests() {
             method: 'POST'
         }, { userCode: 'PANT-ALIC', tunnelUrl: 'play.e4mc.link:25565' });
         assert.strictEqual(hostRes.statusCode, 200);
-        console.log('✓ Test 5: POST /api/host tünel duyurusu başarılı.');
+        console.log('✓ Test 6: POST /api/host tünel duyurusu başarılı.');
 
-        // Test 6: Durum Sorgulama (POST /api/status)
+        // Test 7: Durum Sorgulama (POST /api/status)
         const bobStatusRes = await request({
             hostname: '127.0.0.1',
             port: TEST_PORT,
@@ -111,9 +128,9 @@ async function runTests() {
         assert.strictEqual(bobStatusRes.data.friends[0].online, true);
         assert.strictEqual(bobStatusRes.data.friends[0].isHosting, true);
         assert.strictEqual(bobStatusRes.data.friends[0].tunnelUrl, 'play.e4mc.link:25565');
-        console.log('✓ Test 6: POST /api/status arkadaş durumu ve tünel adresi eşleşmesi doğrulandı.');
+        console.log('✓ Test 7: POST /api/status arkadaş durumu ve tünel adresi eşleşmesi doğrulandı.');
 
-        // Test 7: Davet Gönderme ve Alma (POST /api/invite & durum kontrolü)
+        // Test 8: Davet Gönderme ve Alma (POST /api/invite & durum kontrolü)
         const inviteRes = await request({
             hostname: '127.0.0.1',
             port: TEST_PORT,
@@ -130,9 +147,9 @@ async function runTests() {
         }, { userCode: bobCode, friendCodes: ['PANT-ALIC'] });
         assert.strictEqual(bobStatusWithInvite.data.invites.length, 1);
         assert.strictEqual(bobStatusWithInvite.data.invites[0].senderName, 'Alice');
-        console.log('✓ Test 7: POST /api/invite ve davet kuyruğu entegrasyonu başarılı.');
+        console.log('✓ Test 8: POST /api/invite ve davet kuyruğu entegrasyonu başarılı.');
 
-        // Test 8: Davet Reddetme (POST /api/reject-invite)
+        // Test 9: Davet Reddetme (POST /api/reject-invite)
         const rejectRes = await request({
             hostname: '127.0.0.1',
             port: TEST_PORT,
@@ -148,9 +165,9 @@ async function runTests() {
             method: 'POST'
         }, { userCode: bobCode });
         assert.strictEqual(bobStatusAfterReject.data.invites.length, 0);
-        console.log('✓ Test 8: POST /api/reject-invite davet reddetme işlemi doğrulandı.');
+        console.log('✓ Test 9: POST /api/reject-invite davet reddetme işlemi doğrulandı.');
 
-        // Test 9: Hosting Durdurma (POST /api/stop-host)
+        // Test 10: Hosting Durdurma (POST /api/stop-host)
         const stopRes = await request({
             hostname: '127.0.0.1',
             port: TEST_PORT,
@@ -167,12 +184,11 @@ async function runTests() {
         });
         assert.strictEqual(aliceGetStatus.data.isHosting, false);
         assert.strictEqual(aliceGetStatus.data.tunnelUrl, '');
-        console.log('✓ Test 9: POST /api/stop-host ve GET /api/status sorgusu başarılı.');
+        console.log('✓ Test 10: POST /api/stop-host ve GET /api/status sorgusu başarılı.');
 
-        // Test 10: 1.20.1 Mod Yapılandırması ve Dosya Doğrulaması
+        // Test 11: Minecraft 1.20.1 Fabric Manifest ve Mixin Doğrulaması
         const fabricModPath = path.join(__dirname, 'mods', '1.20.1', 'fabric', 'fabric.mod.json');
         const mixinsPath = path.join(__dirname, 'mods', '1.20.1', 'fabric', 'freelan.1.20.1.mixins.json');
-        const forgeModsTomlPath = path.join(__dirname, 'mods', '1.20.1', 'forge', 'META-INF', 'mods.toml');
 
         assert(fs.existsSync(fabricModPath), 'fabric.mod.json mevcut olmalı');
         const fabricMod = JSON.parse(fs.readFileSync(fabricModPath, 'utf8'));
@@ -183,17 +199,40 @@ async function runTests() {
         assert(fs.existsSync(mixinsPath), 'freelan.1.20.1.mixins.json mevcut olmalı');
         const mixinsJson = JSON.parse(fs.readFileSync(mixinsPath, 'utf8'));
         assert.strictEqual(mixinsJson.compatibilityLevel, 'JAVA_17', 'Mixin Java 17 uyumluluğu kontrolü');
+        
+        const expectedMixins = [
+            'ShareToLanScreenMixin',
+            'MinecraftServerMixin',
+            'ChatComponentMixin',
+            'TitleScreenMixin',
+            'PauseScreenMixin',
+            'JoinMultiplayerScreenMixin'
+        ];
+        for (const mixin of expectedMixins) {
+            assert(mixinsJson.client.includes(mixin), `freelan.1.20.1.mixins.json '${mixin}' içermeli`);
+            const mixinFilePath = path.join(__dirname, 'mods', '1.20.1', 'fabric', 'src', 'main', 'java', 'com', 'example', 'freelan', 'mixin', `${mixin}.java`);
+            assert(fs.existsSync(mixinFilePath), `${mixin}.java kaynak dosyası mevcut olmalı`);
+        }
+        console.log('✓ Test 11: Fabric 1.20.1 mod manifest ve 6 Mixin sınıfının kaynak dosyaları doğrulandı.');
+
+        // Test 12: Minecraft 1.20.1 Forge ve Arayüz Sınıfları Doğrulaması
+        const forgeModsTomlPath = path.join(__dirname, 'mods', '1.20.1', 'forge', 'META-INF', 'mods.toml');
+        const freeLanScreenPath = path.join(__dirname, 'mods', '1.20.1', 'fabric', 'src', 'main', 'java', 'com', 'example', 'freelan', 'gui', 'FreeLanScreen.java');
+        const pantialFriendsPath = path.join(__dirname, 'mods', '1.20.1', 'fabric', 'src', 'main', 'java', 'com', 'example', 'freelan', 'gui', 'PantialFriendsScreen.java');
 
         assert(fs.existsSync(forgeModsTomlPath), 'Forge mods.toml mevcut olmalı');
         const modsToml = fs.readFileSync(forgeModsTomlPath, 'utf8');
         assert(modsToml.includes('modId="freelan"'), 'Forge modId freelan olmalı');
         assert(modsToml.includes('1.20.1'), 'Forge 1.20.1 bağımlılığı içermeli');
 
-        console.log('✓ Test 10: Minecraft 1.20.1 Fabric ve Forge mod manifest ve Mixin doğrulaması başarılı.');
+        assert(fs.existsSync(freeLanScreenPath), 'FreeLanScreen.java mevcut olmalı');
+        assert(fs.existsSync(pantialFriendsPath), 'PantialFriendsScreen.java mevcut olmalı');
 
-        console.log('\n========================================');
-        console.log('TÜM TESTLER BAŞARIYLA TAMAMLANDI (10/10 OK)');
-        console.log('========================================\n');
+        console.log('✓ Test 12: Forge 1.20.1 mods.toml ve FreeLanScreen / PantialFriendsScreen arayüzleri doğrulandı.');
+
+        console.log('\n========================================================');
+        console.log('TÜM TESTLER BAŞARIYLA TAMAMLANDI (12/12 OK - %100 HATASIZ)');
+        console.log('========================================================\n');
         process.exitCode = 0;
     } catch (err) {
         console.error('❌ Test sırasında hata meydana geldi:', err);

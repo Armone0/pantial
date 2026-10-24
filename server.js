@@ -61,6 +61,9 @@ function parseJson(req) {
                 resolve({});
             }
         });
+        req.on('error', () => {
+            resolve({});
+        });
     });
 }
 
@@ -107,6 +110,25 @@ const server = http.createServer(async (req, res) => {
                 userCode: newCode,
                 format: 'PANT-XXXX',
                 success: true
+            });
+            return;
+        }
+
+        if (pathname === '/api/players') {
+            const playerList = Object.entries(players).map(([code, p]) => ({
+                userCode: code,
+                username: p.username,
+                uuid: p.uuid,
+                online: p.online,
+                isHosting: p.isHosting,
+                tunnelUrl: p.tunnelUrl,
+                lastSeen: p.lastSeen
+            }));
+            sendJson(res, 200, {
+                totalCount: playerList.length,
+                onlineCount: playerList.filter(p => p.online).length,
+                hostingCount: playerList.filter(p => p.online && p.isHosting).length,
+                players: playerList
             });
             return;
         }
@@ -199,7 +221,7 @@ const server = http.createServer(async (req, res) => {
 
             players[assignedCode] = {
                 username,
-                uuid: uuid || '',
+                uuid: uuid || (players[assignedCode] ? players[assignedCode].uuid : ''),
                 lastSeen: Date.now(),
                 tunnelUrl: players[assignedCode] ? players[assignedCode].tunnelUrl : '',
                 isHosting: players[assignedCode] ? players[assignedCode].isHosting : false,
@@ -216,14 +238,23 @@ const server = http.createServer(async (req, res) => {
         }
 
         if (pathname === '/api/host') {
-            const { tunnelUrl } = data;
-            if (players[userCode]) {
+            const { tunnelUrl, username, uuid } = data;
+            if (!players[userCode]) {
+                players[userCode] = {
+                    username: username || 'Oyuncu',
+                    uuid: uuid || '',
+                    lastSeen: Date.now(),
+                    tunnelUrl: tunnelUrl || '',
+                    isHosting: true,
+                    online: true
+                };
+            } else {
                 players[userCode].tunnelUrl = tunnelUrl || '';
                 players[userCode].isHosting = true;
                 players[userCode].lastSeen = Date.now();
                 players[userCode].online = true;
-                console.log(`[Host] ${players[userCode].username} (${userCode}) dunya paylasimi acti: ${tunnelUrl || 'bekleniyor'}`);
             }
+            console.log(`[Host] ${players[userCode].username} (${userCode}) dunya paylasimi acti: ${tunnelUrl || 'bekleniyor'}`);
             sendJson(res, 200, { success: true });
             return;
         }

@@ -1,10 +1,13 @@
 package com.example.freelan.forge;
 
+import com.example.freelan.gui.FreeLanScreen;
 import com.example.freelan.gui.PantialFriendsScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.PauseScreen;
+import net.minecraft.client.gui.screens.ShareToLanScreen;
 import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -29,6 +32,19 @@ public class FreeLanForgeEvents {
                     Component.literal("§6Pantial"),
                     btn -> Minecraft.getInstance().setScreen(new PantialFriendsScreen(pauseScreen))
             ).bounds(x, y, 98, 20).build());
+        } else if (event.getScreen() instanceof JoinMultiplayerScreen joinScreen) {
+            int x = joinScreen.width / 2 - 154;
+            int y = joinScreen.height - 28;
+
+            event.addListener(Button.builder(
+                    Component.literal("§6Pantial"),
+                    btn -> Minecraft.getInstance().setScreen(new PantialFriendsScreen(joinScreen))
+            ).bounds(x, y, 100, 20).build());
+        } else if (event.getScreen() instanceof ShareToLanScreen shareScreen) {
+            // Forge uzerinde ShareToLanScreen yerine FreeLanScreen ekranini ac
+            Minecraft.getInstance().execute(() -> {
+                Minecraft.getInstance().setScreen(new FreeLanScreen(null));
+            });
         }
     }
 }
