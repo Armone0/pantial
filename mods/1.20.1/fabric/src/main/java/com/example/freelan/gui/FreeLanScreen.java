@@ -18,7 +18,7 @@ public class FreeLanScreen extends Screen {
 
     private GameType gameType = GameType.SURVIVAL;
     private boolean allowCommands = false;
-    private boolean onlineMode = false; // Varsayılan: Çevrim dışı / cracked dostu
+    private boolean onlineMode = false; // Varsayılan: Yerel ağ için çevrim dışı kimlik doğrulama modu
     private boolean enableTunnel = true;
     private int port = 25565;
     private EditBox portEditBox;
@@ -49,9 +49,9 @@ public class FreeLanScreen extends Screen {
         this.addRenderableWidget(CycleButton.onOffBuilder(this.allowCommands)
                 .create(centerX + 5, 50, 150, 20, Component.literal("Hileler"), (button, value) -> this.allowCommands = value));
 
-        // 3. Çevrim İçi Kimlik Doğrulama (Online-Mode / Korsan Desteği)
+        // 3. Çevrim İçi Kimlik Doğrulama (Online Authentication Modu)
         this.addRenderableWidget(CycleButton.onOffBuilder(this.onlineMode)
-                .create(centerX - 155, 80, 150, 20, Component.literal("Orijinal Hesap Şartı"), (button, value) -> this.onlineMode = value));
+                .create(centerX - 155, 80, 150, 20, Component.literal("Kimlik Doğrulama (Online-Mode)"), (button, value) -> this.onlineMode = value));
 
         // 4. e4mc P2P Tünel Modu
         this.addRenderableWidget(CycleButton.onOffBuilder(this.enableTunnel)

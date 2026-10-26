@@ -11,8 +11,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class MinecraftServerMixin {
 
     /**
-     * Yerel ağ dünyalarında çevrim dışı (cracked / korsan) hesapların "Invalid session" hatası
-     * almadan oyuna bağlanabilmesi için sunucu kimlik doğrulamasını (online-mode) LanConfig ayarına bağlar.
+     * Yerel ağ ve test ortamlarında harici Xbox/Mojang sunucu doğrulaması olmadan
+     * doğrudan yerel ağ üzerinden bağlanabilmek için sunucu kimlik doğrulamasını (online-mode)
+     * LanConfig yapılandırmasına bağlar.
      */
     @Inject(method = "usesAuthentication", at = @At("HEAD"), cancellable = true)
     private void freelan$usesAuthentication(CallbackInfoReturnable<Boolean> cir) {
