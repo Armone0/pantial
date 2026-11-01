@@ -18,9 +18,9 @@ Her hafta sonu (Cumartesi & Pazar) otomasyon sıradaki sürüm hedefini veya alt
   - [x] Forge: 1.20.1 uyumlu ScreenEvent dinleyicileri ve mods.toml konfigürasyonu
   - [x] 1.20.1 ağ paketi ve ekran yöneticisi testleri (PantialFriendsScreen)
 
-- [ ] **1.20.4 / 1.20.6 (Geçiş Sürümleri):**
-  - [ ] Fabric & NeoForge mod manifest ve bağımlılık aralığı genişletme
-  - [ ] Arayüz buton konumlandırma uyumluluğu
+- [x] **1.20.4 / 1.20.6 (Geçiş Sürümleri):**
+  - [x] Fabric & NeoForge mod manifest ve bağımlılık aralığı genişletme
+  - [x] Arayüz buton konumlandırma uyumluluğu
 
 - [ ] **1.19.2 & 1.19.4 (Wild Update):**
   - [ ] Fabric & Forge 1.19.x geriye dönük uyumluluk katmanı

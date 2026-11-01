@@ -20,7 +20,7 @@ public abstract class PauseScreenMixin extends Screen {
     private void addPantialPauseButton(CallbackInfo ci) {
         int buttonWidth = 98;
         int buttonHeight = 20;
-        int x = this.width / 2 + 104;
+        int x = Math.min(this.width / 2 + 104, this.width - buttonWidth - 6);
         int y = this.height / 4 + 72 + -16;
 
         this.addRenderableWidget(Button.builder(

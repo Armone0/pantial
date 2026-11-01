@@ -18,20 +18,22 @@ public class FreeLanForgeEvents {
     public void onScreenInit(ScreenEvent.Init.Post event) {
         if (event.getScreen() instanceof TitleScreen titleScreen) {
             int x = titleScreen.width / 2 - 50;
-            int y = titleScreen.height / 4 + 48 + 72 + 12;
+            int defaultY = titleScreen.height / 4 + 48 + 72 + 12;
+            int y = Math.min(defaultY, titleScreen.height - 28);
 
             event.addListener(Button.builder(
                     Component.literal("§6Pantial"),
                     btn -> Minecraft.getInstance().setScreen(new PantialFriendsScreen(titleScreen))
             ).bounds(x, y, 100, 20).build());
         } else if (event.getScreen() instanceof PauseScreen pauseScreen) {
-            int x = pauseScreen.width / 2 + 104;
+            int buttonWidth = 98;
+            int x = Math.min(pauseScreen.width / 2 + 104, pauseScreen.width - buttonWidth - 6);
             int y = pauseScreen.height / 4 + 72 - 16;
 
             event.addListener(Button.builder(
                     Component.literal("§6Pantial"),
                     btn -> Minecraft.getInstance().setScreen(new PantialFriendsScreen(pauseScreen))
-            ).bounds(x, y, 98, 20).build());
+            ).bounds(x, y, buttonWidth, 20).build());
         } else if (event.getScreen() instanceof JoinMultiplayerScreen joinScreen) {
             int x = joinScreen.width / 2 - 154;
             int y = joinScreen.height - 28;

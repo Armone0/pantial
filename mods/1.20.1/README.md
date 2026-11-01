@@ -33,12 +33,15 @@ mods/1.20.1/
 │           ├── PauseScreenMixin.java   # Oyun içi menüye Pantial butonu ekleme
 │           ├── ShareToLanScreenMixin.java
 │           └── ChatComponentMixin.java # e4mc regex yakalama
-└── forge/
-    ├── META-INF/
-    │   └── mods.toml                   # Forge 1.20.1 mod tanımlayıcısı
-    └── src/main/java/com/example/freelan/forge/
-        ├── FreeLanForge.java           # @Mod("freelan") Forge başlangıcı
-        └── FreeLanForgeEvents.java     # Forge ScreenEvent dinleyicileri
+├── forge/
+│   ├── META-INF/
+│   │   └── mods.toml                   # Forge 1.20.1-1.20.6 mod tanımlayıcısı
+│   └── src/main/java/com/example/freelan/forge/
+│       ├── FreeLanForge.java           # @Mod("freelan") Forge başlangıcı
+│       └── FreeLanForgeEvents.java     # Forge ScreenEvent dinleyicileri
+└── neoforge/
+    └── META-INF/
+        └── neoforge.mods.toml          # NeoForge 1.20.4 / 1.20.6 geçiş manifesti
 ```
 
 ---

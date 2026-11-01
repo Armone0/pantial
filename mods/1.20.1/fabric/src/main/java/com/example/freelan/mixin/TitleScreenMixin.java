@@ -21,7 +21,8 @@ public abstract class TitleScreenMixin extends Screen {
         int buttonWidth = 100;
         int buttonHeight = 20;
         int x = this.width / 2 - 50;
-        int y = this.height / 4 + 48 + 72 + 12;
+        int defaultY = this.height / 4 + 48 + 72 + 12;
+        int y = Math.min(defaultY, this.height - 28);
 
         this.addRenderableWidget(Button.builder(
                 Component.literal("§6Pantial"),

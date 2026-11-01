@@ -3,7 +3,7 @@
   "id": "freelan",
   "name": "FreeLAN (Pantial)",
   "version": "1.0.0-1.20.1",
-  "description": "Essential benzeri P2P yerel ağ ve varlık istemcisi modu. Minecraft 1.20.1 LTS sürümü için port edildi.",
+  "description": "Essential benzeri P2P yerel ağ ve varlık istemcisi modu. Minecraft 1.20.1 LTS ve 1.20.4/1.20.6 geçiş sürümleri uyumlu.",
   "authors": [
     "Antigravity",
     "Armone"
@@ -26,7 +26,7 @@
   ],
   "depends": {
     "fabricloader": ">=0.14.21",
-    "minecraft": ">=1.20.1 <=1.20.2",
+    "minecraft": ">=1.20.1 <=1.20.6",
     "java": ">=17"
   },
   "suggests": {

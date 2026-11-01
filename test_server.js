@@ -230,8 +230,24 @@ async function runTests() {
 
         console.log('✓ Test 12: Forge 1.20.1 mods.toml ve FreeLanScreen / PantialFriendsScreen arayüzleri doğrulandı.');
 
+        // Test 13: 1.20.4 / 1.20.6 Geçiş Sürümleri ve NeoForge Manifest Doğrulaması
+        const neoforgeTomlPath = path.join(__dirname, 'mods', '1.20.1', 'neoforge', 'META-INF', 'neoforge.mods.toml');
+        assert(fs.existsSync(neoforgeTomlPath), 'neoforge.mods.toml mevcut olmalı');
+        const neoforgeToml = fs.readFileSync(neoforgeTomlPath, 'utf8');
+        assert(neoforgeToml.includes('modId="freelan"'), 'NeoForge modId freelan olmalı');
+        assert(neoforgeToml.includes('versionRange="[1.20.4, 1.20.7)"'), 'NeoForge Minecraft versionRange [1.20.4, 1.20.7) olmalı');
+        assert(neoforgeToml.includes('loaderVersion="[20.4,)'), 'NeoForge loaderVersion [20.4,) olmalı');
+
+        const fabricModJson = JSON.parse(fs.readFileSync(fabricModPath, 'utf8'));
+        assert(fabricModJson.depends.minecraft.includes('<=1.20.6'), 'fabric.mod.json 1.20.6 sürümünü kapsamalı');
+
+        const forgeTomlContent = fs.readFileSync(forgeModsTomlPath, 'utf8');
+        assert(forgeTomlContent.includes('1.20.7)'), 'Forge mods.toml 1.20.7 üst sınırını içermeli');
+
+        console.log('✓ Test 13: 1.20.4 / 1.20.6 geçiş sürümü manifestleri ve NeoForge uyumluluğu doğrulandı.');
+
         console.log('\n========================================================');
-        console.log('TÜM TESTLER BAŞARIYLA TAMAMLANDI (12/12 OK - %100 HATASIZ)');
+        console.log('TÜM TESTLER BAŞARIYLA TAMAMLANDI (13/13 OK - %100 HATASIZ)');
         console.log('========================================================\n');
         process.exitCode = 0;
     } catch (err) {
