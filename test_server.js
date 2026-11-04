@@ -246,8 +246,39 @@ async function runTests() {
 
         console.log('✓ Test 13: 1.20.4 / 1.20.6 geçiş sürümü manifestleri ve NeoForge uyumluluğu doğrulandı.');
 
+        // Test 14: Minecraft 1.19.2 & 1.19.4 (The Wild Update) Geriye Dönük Uyumluluk Doğrulaması
+        const fabric119Path = path.join(__dirname, 'mods', '1.19.2', 'fabric', 'fabric.mod.json');
+        const mixins119Path = path.join(__dirname, 'mods', '1.19.2', 'fabric', 'freelan.1.19.mixins.json');
+        const forge119Path = path.join(__dirname, 'mods', '1.19.2', 'forge', 'META-INF', 'mods.toml');
+        const screen119Path = path.join(__dirname, 'mods', '1.19.2', 'fabric', 'src', 'main', 'java', 'com', 'example', 'freelan', 'gui', 'PantialFriendsScreen119.java');
+        const forgeEvents119Path = path.join(__dirname, 'mods', '1.19.2', 'forge', 'src', 'main', 'java', 'com', 'example', 'freelan', 'forge', 'FreeLanForgeEvents119.java');
+
+        assert(fs.existsSync(fabric119Path), 'Fabric 1.19.2 fabric.mod.json mevcut olmalı');
+        const fabric119Json = JSON.parse(fs.readFileSync(fabric119Path, 'utf8'));
+        assert(fabric119Json.depends.minecraft.includes('<=1.19.4'), 'fabric.mod.json 1.19.4 sürümünü kapsamalı');
+
+        assert(fs.existsSync(mixins119Path), 'freelan.1.19.mixins.json mevcut olmalı');
+        const mixins119Json = JSON.parse(fs.readFileSync(mixins119Path, 'utf8'));
+        assert.strictEqual(mixins119Json.compatibilityLevel, 'JAVA_17', '1.19 Mixin Java 17 olmalı');
+
+        assert(fs.existsSync(forge119Path), 'Forge 1.19 mods.toml mevcut olmalı');
+        const forge119Toml = fs.readFileSync(forge119Path, 'utf8');
+        assert(forge119Toml.includes('1.19.5)'), 'Forge mods.toml 1.19.5 üst sınırını içermeli');
+        assert(forge119Toml.includes('loaderVersion="[43,)'), 'Forge mods.toml loaderVersion [43,) olmalı');
+
+        assert(fs.existsSync(screen119Path), 'PantialFriendsScreen119.java mevcut olmalı');
+        const screen119Content = fs.readFileSync(screen119Path, 'utf8');
+        assert(screen119Content.includes('PoseStack matrices'), 'PantialFriendsScreen119 PoseStack kullanmalı');
+        assert(screen119Content.includes('new Button('), '1.19 arayüzü klasik new Button kullanmalı');
+
+        assert(fs.existsSync(forgeEvents119Path), 'FreeLanForgeEvents119.java mevcut olmalı');
+        const forgeEvents119Content = fs.readFileSync(forgeEvents119Path, 'utf8');
+        assert(forgeEvents119Content.includes('new Button('), 'Forge 1.19 olay dinleyicisi new Button kullanmalı');
+
+        console.log('✓ Test 14: 1.19.2 & 1.19.4 (The Wild Update) Fabric/Forge manifest ve PoseStack adaptörleri doğrulandı.');
+
         console.log('\n========================================================');
-        console.log('TÜM TESTLER BAŞARIYLA TAMAMLANDI (13/13 OK - %100 HATASIZ)');
+        console.log('TÜM TESTLER BAŞARIYLA TAMAMLANDI (14/14 OK - %100 HATASIZ)');
         console.log('========================================================\n');
         process.exitCode = 0;
     } catch (err) {

@@ -22,9 +22,9 @@ Her hafta sonu (Cumartesi & Pazar) otomasyon sıradaki sürüm hedefini veya alt
   - [x] Fabric & NeoForge mod manifest ve bağımlılık aralığı genişletme
   - [x] Arayüz buton konumlandırma uyumluluğu
 
-- [ ] **1.19.2 & 1.19.4 (Wild Update):**
-  - [ ] Fabric & Forge 1.19.x geriye dönük uyumluluk katmanı
-  - [ ] Eski ChatComponent ve Screen API adaptörleri
+- [x] **1.19.2 & 1.19.4 (Wild Update):**
+  - [x] Fabric & Forge 1.19.x geriye dönük uyumluluk katmanı
+  - [x] Eski ChatComponent ve Screen API adaptörleri (PoseStack & Button)
 
 - [ ] **1.18.2 (Caves & Cliffs Part II):**
   - [ ] Java 17 tabanlı Fabric/Forge 1.18.2 desteği
