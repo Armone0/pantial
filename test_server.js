@@ -277,8 +277,40 @@ async function runTests() {
 
         console.log('✓ Test 14: 1.19.2 & 1.19.4 (The Wild Update) Fabric/Forge manifest ve PoseStack adaptörleri doğrulandı.');
 
+        // Test 15: Minecraft 1.18.2 (Caves & Cliffs Part II) Geriye Dönük Uyumluluk Doğrulaması
+        const fabric118Path = path.join(__dirname, 'mods', '1.18.2', 'fabric', 'fabric.mod.json');
+        const mixins118Path = path.join(__dirname, 'mods', '1.18.2', 'fabric', 'freelan.1.18.mixins.json');
+        const forge118Path = path.join(__dirname, 'mods', '1.18.2', 'forge', 'META-INF', 'mods.toml');
+        const screen118Path = path.join(__dirname, 'mods', '1.18.2', 'fabric', 'src', 'main', 'java', 'com', 'example', 'freelan', 'gui', 'PantialFriendsScreen118.java');
+        const forgeEvents118Path = path.join(__dirname, 'mods', '1.18.2', 'forge', 'src', 'main', 'java', 'com', 'example', 'freelan', 'forge', 'FreeLanForgeEvents118.java');
+
+        assert(fs.existsSync(fabric118Path), 'Fabric 1.18.2 fabric.mod.json mevcut olmalı');
+        const fabric118Json = JSON.parse(fs.readFileSync(fabric118Path, 'utf8'));
+        assert(fabric118Json.depends.minecraft.includes('<=1.18.2'), 'fabric.mod.json 1.18.2 sürümünü kapsamalı');
+
+        assert(fs.existsSync(mixins118Path), 'freelan.1.18.mixins.json mevcut olmalı');
+        const mixins118Json = JSON.parse(fs.readFileSync(mixins118Path, 'utf8'));
+        assert.strictEqual(mixins118Json.compatibilityLevel, 'JAVA_17', '1.18 Mixin Java 17 olmalı');
+
+        assert(fs.existsSync(forge118Path), 'Forge 1.18.2 mods.toml mevcut olmalı');
+        const forge118Toml = fs.readFileSync(forge118Path, 'utf8');
+        assert(forge118Toml.includes('1.19)'), 'Forge mods.toml 1.19 üst sınırını içermeli');
+        assert(forge118Toml.includes('loaderVersion="[40,)'), 'Forge mods.toml loaderVersion [40,) olmalı');
+
+        assert(fs.existsSync(screen118Path), 'PantialFriendsScreen118.java mevcut olmalı');
+        const screen118Content = fs.readFileSync(screen118Path, 'utf8');
+        assert(screen118Content.includes('PoseStack matrices'), 'PantialFriendsScreen118 PoseStack kullanmalı');
+        assert(screen118Content.includes('new TextComponent('), '1.18 arayüzü TextComponent kullanmalı');
+        assert(screen118Content.includes('serverConnected'), '1.18 arayüzü sunucu hata durumu kontrolü içermeli');
+
+        assert(fs.existsSync(forgeEvents118Path), 'FreeLanForgeEvents118.java mevcut olmalı');
+        const forgeEvents118Content = fs.readFileSync(forgeEvents118Path, 'utf8');
+        assert(forgeEvents118Content.includes('ScreenEvent.InitScreenEvent.Post'), 'Forge 1.18.2 olay dinleyicisi InitScreenEvent.Post kullanmalı');
+
+        console.log('✓ Test 15: 1.18.2 (Caves & Cliffs Part II) Fabric/Forge manifest, TextComponent ve hata paneli doğrulandı.');
+
         console.log('\n========================================================');
-        console.log('TÜM TESTLER BAŞARIYLA TAMAMLANDI (14/14 OK - %100 HATASIZ)');
+        console.log('TÜM TESTLER BAŞARIYLA TAMAMLANDI (15/15 OK - %100 HATASIZ)');
         console.log('========================================================\n');
         process.exitCode = 0;
     } catch (err) {

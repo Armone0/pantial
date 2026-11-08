@@ -26,9 +26,10 @@ Her hafta sonu (Cumartesi & Pazar) otomasyon sıradaki sürüm hedefini veya alt
   - [x] Fabric & Forge 1.19.x geriye dönük uyumluluk katmanı
   - [x] Eski ChatComponent ve Screen API adaptörleri (PoseStack & Button)
 
-- [ ] **1.18.2 (Caves & Cliffs Part II):**
-  - [ ] Java 17 tabanlı Fabric/Forge 1.18.2 desteği
-  - [ ] e4mc tünel protokolü uyumluluk doğrulaması
+- [x] **1.18.2 (Caves & Cliffs Part II):**
+  - [x] Java 17 tabanlı Fabric/Forge 1.18.2 desteği
+  - [x] TextComponent & PoseStack adaptörleri
+  - [x] e4mc tünel protokolü uyumluluk doğrulaması
 
 - [ ] **1.16.5 (Klasik Modding Temeli):**
   - [ ] Java 8 / 1.16.5 Forge uyumluluğu
@@ -41,4 +42,4 @@ Her hafta sonu (Cumartesi & Pazar) otomasyon sıradaki sürüm hedefini veya alt
 - [x] `server.js`: Arkadaş kodları için daha kısa ve akılda kalıcı format (`PANT-XXXX`) ve otomatik üretim desteği
 - [x] Otomatik kurulum ve başlatma scriptleri (Windows `start.bat` & Linux `start.sh`)
 - [x] Otomatik test paketi (`test_server.js` ve `npm test`)
-- [ ] Mod içi: Sunucuya bağlanamadığında kullanıcıya hata mesajı gösteren bildirim paneli
+- [x] Mod içi: Sunucuya bağlanamadığında kullanıcıya hata mesajı gösteren bildirim paneli (PantialFriendsScreen118)

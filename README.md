@@ -21,9 +21,9 @@ Pantial; port yönlendirme (port forwarding) gerektirmeden, arkadaşlarınızla 
 | :--- | :---: | :---: | :--- |
 | **1.21.1** | Destekleniyor | Destekleniyor | Stabil |
 | **1.20.1** | Destekleniyor | Destekleniyor | Stabil (LTS) |
-| **1.20.4** | Planlandı | Planlandı | Yol Haritasında |
-| **1.19.2** | Planlandı | Planlandı | Yol Haritasında |
-| **1.18.2** | Planlandı | Planlandı | Yol Haritasında |
+| **1.20.4 / 1.20.6** | Destekleniyor | Destekleniyor | Stabil |
+| **1.19.2 / 1.19.4** | Destekleniyor | Destekleniyor | Stabil |
+| **1.18.2** | Destekleniyor | Destekleniyor | Stabil |
 | **1.16.5** | Planlandı | Planlandı | Yol Haritasında |
 
 Detaylı gelişim takvimi için [ROADMAP.md](ROADMAP.md) dosyasını inceleyebilirsiniz.
