@@ -90,9 +90,16 @@ public final class PantialMenu {
     }
 
     private void focus(TextField f) {
+        if (focused == f) return;
         if (focused != null) focused.focused = false;
         focused = f;
         if (f != null) f.focused = true;
+        platform.textInputFocus(f != null);
+    }
+
+    /** Menu kapanirken metin girisini birak. */
+    public void removed() {
+        focus(null);
     }
 
     // ------------------------------------------------------------------ cizim

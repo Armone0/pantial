@@ -5,6 +5,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.gui.screens.ConnectScreen;
+import net.minecraft.client.gui.screens.GenericMessageScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
@@ -80,7 +81,10 @@ public class FabricPlatform implements Platform {
     @Override
     public void connect(String address, String displayName) {
         Minecraft mc = mc();
-        if (mc.level != null) mc.disconnectWithSavingScreen();
+        if (mc.level != null) {
+            mc.level.disconnect();
+            mc.disconnect(new GenericMessageScreen(Component.translatable("menu.savingLevel")));
+        }
         Screen parent = new JoinMultiplayerScreen(new TitleScreen());
         ConnectScreen.startConnecting(parent, mc, ServerAddress.parseString(address),
                 new ServerData(displayName, address, ServerData.Type.OTHER), false, null);

@@ -138,19 +138,27 @@ test('Bozuk JSON ve bilinmeyen uc', async () => {
     assert.strictEqual((await get('/api/yok')).statusCode, 404);
 });
 
-test('Fabric 1.20.1 manifesti ve mixin sinif dosyalari tutarli', async () => {
-    const root = path.join(__dirname, 'mods', '1.20.1', 'fabric', 'src', 'main');
-    const mod = JSON.parse(fs.readFileSync(path.join(root, 'resources', 'fabric.mod.json'), 'utf8'));
-    assert.strictEqual(mod.id, 'freelan');
-    for (const entry of mod.entrypoints.client) {
-        const file = path.join(root, 'java', ...entry.split('.')) + '.java';
-        assert(fs.existsSync(file), `entrypoint sinifi yok: ${entry}`);
-    }
-    for (const mixinFile of mod.mixins) {
-        const mixins = JSON.parse(fs.readFileSync(path.join(root, 'resources', mixinFile), 'utf8'));
-        for (const name of [...(mixins.client || []), ...(mixins.mixins || [])]) {
-            const file = path.join(root, 'java', ...mixins.package.split('.'), `${name}.java`);
-            assert(fs.existsSync(file), `mixin sinifi yok: ${name}`);
+test('Mod manifesti, mixinler ve her surumun platform katmani tutarli', async () => {
+    const mod = path.join(__dirname, 'mod');
+    const res = path.join(mod, 'common', 'src', 'main', 'resources');
+    const manifest = JSON.parse(fs.readFileSync(path.join(res, 'fabric.mod.json'), 'utf8'));
+    assert.strictEqual(manifest.id, 'pantial');
+    const mixins = JSON.parse(fs.readFileSync(path.join(res, manifest.mixins[0]), 'utf8'));
+    const mixinPath = (root, name) => path.join(root, ...mixins.package.split('.'), `${name}.java`);
+    const entry = manifest.entrypoints.client[0].split('.');
+    const versions = fs.readdirSync(path.join(mod, 'versions'));
+    assert(versions.length >= 10, 'surum listesi eksik');
+    for (const v of versions) {
+        const props = Object.fromEntries(fs.readFileSync(path.join(mod, 'versions', v, 'gradle.properties'), 'utf8')
+            .split('\n').filter(l => l.includes('=')).map(l => l.split('=')));
+        assert.strictEqual(props.minecraft_version, v);
+        const file = path.join(mod, 'platform', props.platform, 'java', ...entry) + '.java';
+        assert(fs.existsSync(file), `${v}: entrypoint yok (${props.platform})`);
+        // Her mixin ya ortak kodda ya da bu surumun platform katmaninda olmali
+        for (const name of mixins.client) {
+            const found = [path.join(mod, 'common', 'src', 'main', 'java'), path.join(mod, 'platform', props.platform, 'java')]
+                .some(root => fs.existsSync(mixinPath(root, name)));
+            assert(found, `${v}: mixin sinifi yok: ${name}`);
         }
     }
 });
@@ -173,7 +181,7 @@ async function run() {
     server.close();
     console.log(`\n${tests.length - failed}/${tests.length} test gecti.`);
     console.log('Not: Bu testler sunucuyu ve manifest tutarliligini kontrol eder; modun derlendigini');
-    console.log('gormek icin mods/1.20.1/fabric icinde ./gradlew build calistirin.');
+    console.log('gormek icin mod/ icinde ./gradlew collectJars calistirin.');
     process.exit(failed ? 1 : 0);
 }
 

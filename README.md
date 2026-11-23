@@ -4,42 +4,64 @@ Pantial; port yönlendirme (port forwarding) gerektirmeden, arkadaşlarınızla 
 
 ---
 
-## Mimari ve Bileşenler
+![Pantial menüsü](docs/menu.png)
 
-1. **Tünel Entegrasyonu (`e4mc` Protokolü):**  
-   Dünyanızı yerel ağa (LAN) açtığınızda e4mc tünel protokolü üzerinden otomatik bir genel adres (`*.e4mc.link`) oluşturur. Karmaşık sanal ağ (VPN) programlarına gerek bırakmaz.
-2. **`FreeLAN` İstemci Modu:**  
-   Essential tarzı modern bir arkadaş listesi ve arayüz sunar. Akılda kalıcı oyuncu kodunuzu (`PANT-XXXX`) arkadaşınızla paylaştığınızda, arka planda tünel adresini alıp birbirinizi çevrim içi görmenizi ve tek tıkla oyuna katılmanızı sağlar.
-3. **`pantial-presence-server` (`server.js`):**  
-   Oyuncuların çevrim içi durumlarını, davetlerini ve tünel bağlantılarını koordine eden hafif Node.js varlık sunucusudur.
+## İndirme
 
----
+[**Releases**](https://github.com/Armone0/pantial/releases) sayfasından Minecraft sürümüne uyan
+`pantial-fabric-…+<minecraft>.jar` dosyasını indirip `mods` klasörüne at.
+Gerekenler: Fabric Loader + Fabric API. Dünyayı internete açmak için [e4mc](https://modrinth.com/mod/e4mc) önerilir.
 
-## Sürüm Durumu
+| Minecraft | Jar |
+| :--- | :--- |
+| 1.18.2 | `+1.18.2` |
+| 1.19 – 1.19.2 / 1.19.3 – 1.19.4 | `+1.19.2` / `+1.19.4` |
+| 1.20 – 1.20.1 / 1.20.3 – 1.20.4 / 1.20.5 – 1.20.6 | `+1.20.1` / `+1.20.4` / `+1.20.6` |
+| 1.21 – 1.21.1 / 1.21.2 – 1.21.4 / 1.21.5 | `+1.21.1` / `+1.21.4` / `+1.21.5` |
+| 1.21.6 – 1.21.8 / 1.21.9 – 1.21.10 / 1.21.11 | `+1.21.8` / `+1.21.10` / `+1.21.11` |
+| 26.1.x / 26.2.x / 26.3.x | `+26.1.2` / `+26.2` / `+26.3` |
 
-| Minecraft | Yükleyici | Durum |
-| :--- | :--- | :--- |
-| **1.20.1** | Fabric | Derleniyor, oyunda açılıyor (`mods/1.20.1/fabric`) |
-| 1.20.1 | Forge | Taslak – derlenmez (Fabric sınıflarına bağımlı) |
-| 1.20.4 / 1.20.6 | NeoForge | Taslak – yalnızca manifest var |
-| 1.19.2 / 1.19.4 | Fabric / Forge | Taslak – yalnızca tek ekran sınıfı, derlenmez |
-| 1.18.2 | Fabric / Forge | Taslak – yalnızca tek ekran sınıfı, derlenmez |
-| 1.21.x, 1.16.5 | – | Başlanmadı |
+Şimdilik yalnızca **Fabric**. Forge/NeoForge yol haritasında.
 
-Taslak klasörler bir sonraki port için başlangıç noktası olarak duruyor; gerçek bir Gradle projesi olmadan
-"destekleniyor" sayılmazlar. Detaylar için [ROADMAP.md](ROADMAP.md).
+## Oyunda
 
-### Modu derleme (Fabric 1.20.1)
+Ana menü, duraklatma ve çok oyunculu ekranlarının sağ üstünde **Pantial** düğmesi çıkar. Menüde:
 
-```bash
-cd mods/1.20.1/fabric
-./gradlew build        # jar: build/libs/pantial-1.0.0+1.20.1.jar
-./gradlew runClient    # geliştirme istemcisi
+- **Arkadaşlar** – `PANT-XXXX` koduyla arkadaş ekle/sil, kimin çevrim içi olduğunu ve dünyası açık olanları gör, tek tıkla katıl, kendi dünyana davet et
+- **Davetler** – gelen davetleri kabul et ya da reddet
+- **Dünyam** – tek oyunculu dünyanı paylaş (oyun modu, hileler, kimlik doğrulama, port); e4mc adresini kopyala, çevrim içi arkadaşları toplu davet et
+- **Ayarlar** – varlık sunucusu adresi, bildirimler, ana menü düğmesi
+
+Kodun sağ üstte; tıklayınca panoya kopyalanır. Ayarlar `config/pantial.json` içinde.
+
+## Mimari
+
+```
+server.js            Varlık sunucusu (Node.js, bağımlılık yok)
+mod/
+├── common/          Sürümden bağımsız kod: profil, sunucu istemcisi, menü (kendi çizim katmanıyla)
+├── platform/<aile>/ Minecraft API ailesi başına ince katman (çizim, girdi, ekranlar, bildirim)
+└── versions/<mc>/   Her Minecraft sürümü için ayrı alt proje → ayrı jar
 ```
 
-Java 17+ gerekir. Oyunda: arkadaş kodu `PANT-XXXX`, ayarlar `config/pantial_profile.json`
-(`serverUrl` varsayılan `http://localhost:3000`). Dünyayı internete açmak için yanına
-[e4mc](https://modrinth.com/mod/e4mc) modu kurulmalı; Pantial e4mc'nin sohbete yazdığı adresi yakalayıp arkadaşlara duyurur.
+Menü Minecraft widget'larını kullanmaz; `Gfx` arayüzü üzerinden kendisi çizer. Bu yüzden her sürümde aynı
+görünür ve yeni bir sürüm eklemek genelde yalnızca platform katmanında birkaç satır değişiklik ister.
+
+### Derleme
+
+```bash
+cd mod
+./gradlew collectJars                       # tüm sürümler → mod/build/release/
+./gradlew collectJars -Ppantial.only=1.20.1 # tek sürüm
+./gradlew :1.21.11:runClient                # geliştirme istemcisi
+```
+
+Java 25 gerekir (26.x için); eski sürümler `--release 17/21` ile derlenir.
+
+### Yeni sürüm yayınlama
+
+`v` ile başlayan bir etiket push'layınca (ör. `v1.1.0`) GitHub Actions tüm sürümleri derler, sunucu paketini
+hazırlar ve hepsini Release'e ekler. Açıklama metni `RELEASE_NOTES.md` dosyasından gelir.
 
 ---
 

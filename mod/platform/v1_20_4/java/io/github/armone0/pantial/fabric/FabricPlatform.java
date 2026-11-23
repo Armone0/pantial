@@ -55,7 +55,7 @@ public class FabricPlatform implements Platform {
 
     @Override
     public void toast(String title, String message) {
-        SystemToast.addOrUpdate(mc().getToasts(), SystemToast.SystemToastIds.PERIODIC_NOTIFICATION,
+        SystemToast.addOrUpdate(mc().getToasts(), SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
                 Component.literal("§6Pantial §f" + title), Component.literal(message));
     }
 
@@ -83,7 +83,7 @@ public class FabricPlatform implements Platform {
         Minecraft mc = mc();
         if (mc.level != null) {
             mc.level.disconnect();
-            mc.clearLevel(new GenericDirtMessageScreen(Component.translatable("menu.savingLevel")));
+            mc.disconnect(new GenericDirtMessageScreen(Component.translatable("menu.savingLevel")));
         }
         Screen parent = new JoinMultiplayerScreen(new TitleScreen());
         ConnectScreen.startConnecting(parent, mc, ServerAddress.parseString(address),

@@ -41,6 +41,6 @@ public class PantialFabric implements ClientModInitializer {
     }
 
     static void open(Screen parent) {
-        Minecraft.getInstance().gui.setScreen(new PantialScreen(parent));
+        Compat.setScreen(new PantialScreen(parent));
     }
 }

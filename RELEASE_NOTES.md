@@ -27,6 +27,9 @@ Dünyayı internete açmak için [e4mc](https://modrinth.com/mod/e4mc) önerilir
 `pantial-server.zip`: kendi varlık sunucunu çalıştırmak için (Node.js 18+, `node server.js`).
 Oyunda **Pantial → Ayarlar** kısmından sunucu adresini girin.
 
+Her jar, kendi sürümünün geliştirme istemcisinde açılıp menüde tıklama, kod yazma, arkadaş ekleme/silme ve
+kapatma adımlarıyla denendi. Gerçek iki oyunculu bağlantı (e4mc üzerinden katılma) henüz elle test edilmedi.
+
 ### Yenilikler
 - Yeni Pantial menüsü: Arkadaşlar, Davetler, Dünyam ve Ayarlar sekmeleri
 - Arkadaş kodu ekleme/silme, tek tıkla dünyaya katılma, davet gönderme/kabul etme

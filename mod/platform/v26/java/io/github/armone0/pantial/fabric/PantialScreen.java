@@ -1,8 +1,9 @@
 package io.github.armone0.pantial.fabric;
 
 import io.github.armone0.pantial.ui.Gfx;
+import com.mojang.blaze3d.platform.InputConstants;
 import io.github.armone0.pantial.ui.PantialMenu;
-import net.minecraft.client.Minecraft;
+import io.github.armone0.pantial.ui.TextField;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.CharacterEvent;
@@ -37,7 +38,8 @@ public class PantialScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        return menu.mouseClicked(event.x(), event.y(), event.button()) || super.mouseClicked(event, doubleClick);
+        int button = event.button() == InputConstants.MOUSE_BUTTON_LEFT ? 0 : 1;
+        return menu.mouseClicked(event.x(), event.y(), button) || super.mouseClicked(event, doubleClick);
     }
 
     @Override
@@ -47,7 +49,7 @@ public class PantialScreen extends Screen {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        return menu.keyPressed(event.key(), event.modifiers()) || super.keyPressed(event);
+        return menu.keyPressed(key(event.key()), mods(event.modifiers())) || super.keyPressed(event);
     }
 
     @Override
@@ -55,9 +57,44 @@ public class PantialScreen extends Screen {
         return menu.charTyped(event.codepoint());
     }
 
+    /**
+     * 26.3 SDL3'e gecti: tus kodlari GLFW degil SDL tarama kodu. Bu dosya her 26.x surumu icin
+     * ayri derlendigi icin InputConstants o surumun degerlerini verir; menunun bekledigi GLFW
+     * kodlarina ceviriyoruz.
+     */
+    private static int key(int k) {
+        if (k == InputConstants.KEY_BACKSPACE) return TextField.KEY_BACKSPACE;
+        if (k == InputConstants.KEY_DELETE) return TextField.KEY_DELETE;
+        if (k == InputConstants.KEY_RETURN) return TextField.KEY_ENTER;
+        if (k == InputConstants.KEY_NUMPADENTER) return TextField.KEY_KP_ENTER;
+        if (k == InputConstants.KEY_LEFT) return TextField.KEY_LEFT;
+        if (k == InputConstants.KEY_RIGHT) return TextField.KEY_RIGHT;
+        if (k == InputConstants.KEY_HOME) return TextField.KEY_HOME;
+        if (k == InputConstants.KEY_END) return TextField.KEY_END;
+        if (k == InputConstants.KEY_ESCAPE) return 256;
+        if (k == InputConstants.KEY_A) return TextField.KEY_A;
+        if (k == InputConstants.KEY_C) return TextField.KEY_C;
+        if (k == InputConstants.KEY_V) return TextField.KEY_V;
+        if (k == InputConstants.KEY_X) return TextField.KEY_X;
+        return -1;
+    }
+
+    private static int mods(int m) {
+        int r = 0;
+        if ((m & InputConstants.MOD_CONTROL) != 0) r |= TextField.MOD_CONTROL;
+        if ((m & InputConstants.MOD_SUPER) != 0) r |= TextField.MOD_SUPER;
+        return r;
+    }
+
     @Override
     public void onClose() {
-        Minecraft.getInstance().gui.setScreen(parent);
+        Compat.setScreen(parent);
+    }
+
+    @Override
+    public void removed() {
+        menu.removed();
+        super.removed();
     }
 
     @Override

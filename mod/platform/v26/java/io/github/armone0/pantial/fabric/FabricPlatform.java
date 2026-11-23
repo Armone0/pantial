@@ -12,7 +12,7 @@ import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.multiplayer.resolver.ServerAddress;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.level.GameType;
 
 import java.nio.file.Path;
 
@@ -54,7 +54,7 @@ public class FabricPlatform implements Platform {
 
     @Override
     public void toast(String title, String message) {
-        SystemToast.addOrUpdate(mc().gui.toastManager(), SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
+        SystemToast.addOrUpdate(Compat.toasts(), SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
                 Component.literal("§6Pantial §f" + title), Component.literal(message));
     }
 
@@ -73,13 +73,13 @@ public class FabricPlatform implements Platform {
 
     @Override
     public boolean supportsGameMode() {
-        return false;
+        return Compat.SUPPORTS_GAME_MODE;
     }
 
     @Override
     public boolean publishWorld(GameMode mode, boolean allowCheats, int port) {
         IntegratedServer server = mc().getSingleplayerServer();
-        return server != null && server.publishServer(MinecraftServer.MultiplayerScope.LAN, allowCheats, port);
+        return server != null && Compat.publish(server, GameType.byId(mode.ordinal()), allowCheats, port);
     }
 
     @Override
@@ -102,8 +102,14 @@ public class FabricPlatform implements Platform {
     }
 
     @Override
+    public void textInputFocus(boolean focused) {
+        Screen current = Compat.screen();
+        if (current != null) mc().onTextInputFocusChange(current, focused);
+    }
+
+    @Override
     public void closeMenu() {
-        Screen current = mc().gui.screen();
-        mc().gui.setScreen(current instanceof PantialScreen ps ? ps.parent : null);
+        Screen current = Compat.screen();
+        Compat.setScreen(current instanceof PantialScreen ps ? ps.parent : null);
     }
 }

@@ -1,5 +1,7 @@
 package io.github.armone0.pantial.fabric;
 
+import com.mojang.blaze3d.platform.Window;
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import io.github.armone0.pantial.ui.Gfx;
 import io.github.armone0.pantial.ui.PantialMenu;
@@ -88,6 +90,21 @@ public class PantialScreen extends Screen {
         @Override
         public int width(String s) {
             return font.width(s);
+        }
+
+        /** 1.18/1.19'da GUI kirpma yardimcisi yok; pencere pikseline cevirip RenderSystem ile kirp. */
+        @Override
+        public boolean clip(int x1, int y1, int x2, int y2) {
+            Window w = Minecraft.getInstance().getWindow();
+            double scale = w.getGuiScale();
+            RenderSystem.enableScissor((int) (x1 * scale), (int) (w.getHeight() - y2 * scale),
+                    Math.max(0, (int) ((x2 - x1) * scale)), Math.max(0, (int) ((y2 - y1) * scale)));
+            return true;
+        }
+
+        @Override
+        public void unclip() {
+            RenderSystem.disableScissor();
         }
     }
 }

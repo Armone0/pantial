@@ -45,6 +45,10 @@ public interface Platform {
 
     void setClipboard(String text);
 
+    /** Metin kutusu odak alinca/birakinca (26.x/SDL3'te klavyeden metin almak icin gerekli). */
+    default void textInputFocus(boolean focused) {
+    }
+
     /** Menuyu kapatip onceki ekrana doner. */
     void closeMenu();
 }
