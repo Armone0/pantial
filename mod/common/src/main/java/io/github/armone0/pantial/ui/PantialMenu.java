@@ -1,5 +1,6 @@
 package io.github.armone0.pantial.ui;
 
+import io.github.armone0.pantial.Access;
 import io.github.armone0.pantial.LanState;
 import io.github.armone0.pantial.Pantial;
 import io.github.armone0.pantial.PantialClient;
@@ -15,7 +16,7 @@ import java.util.Map;
  * render/tiklama/klavye olaylarini buraya iletir ve {@link Gfx} uygular.
  */
 public final class PantialMenu {
-    private static final String[] TABS = {"Arkadaşlar", "Davetler", "Dünyam", "Ayarlar"};
+    private static final String[] TABS = {"Arkadaşlar", "İstekler", "Dünyam", "Ayarlar"};
     private static final String[] MODES = {"Hayatta Kalma", "Yaratıcı", "Macera", "İzleyici"};
     private static final int ROW_H = 30;
 
@@ -42,7 +43,7 @@ public final class PantialMenu {
     private final Map<String, Long> invitedAt = new HashMap<>();
 
     private int modeIndex = 0;
-    private boolean cheats = false;
+    private long authConfirmUntil;
 
     public PantialMenu() {
         addField.onEnter = this::addFriend;
@@ -50,6 +51,8 @@ public final class PantialMenu {
         serverField.set(PantialProfile.getInstance().serverUrl);
         portField.set(String.valueOf(freePort()));
         if (Boolean.getBoolean("pantial.autotest")) tab = Integer.getInteger("pantial.autotest.tab", 0);
+        int devPort = Integer.getInteger("pantial.autotest.port", 0);
+        if (devPort > 0) portField.set(String.valueOf(devPort));
     }
 
     public void resize(int width, int height) {
@@ -161,7 +164,7 @@ public final class PantialMenu {
         int x = x1 + 10;
         for (int i = 0; i < TABS.length; i++) {
             String label = TABS[i];
-            int badge = i == 1 ? PantialClient.invites.size() : 0;
+            int badge = i == 1 ? PantialClient.invites.size() + PantialClient.requests.size() : 0;
             int w = ui.g.width(label) + 14 + (badge > 0 ? 14 : 0);
             boolean active = i == tab;
             boolean hov = ui.hover(x, y, x + w, y + 18);
@@ -198,14 +201,19 @@ public final class PantialMenu {
             status = online > 0 ? online + " arkadaş çevrim içi" : "Bağlı";
         } else {
             color = Theme.RED;
-            status = "Sunucuya ulaşılamıyor";
+            status = isDefaultServer() ? "Pantial sunucusu ayarlanmamış · Ayarlar" : "Sunucuya ulaşılamıyor · Ayarlar";
         }
+        boolean offline = PantialClient.hasContacted() && !PantialClient.isReachable();
         if (System.currentTimeMillis() < flashUntil) {
             color = flashColor;
             status = flash;
+            offline = false;
         }
         ui.dot(x1 + 12, ty + 1, color);
-        ui.text(ui.ellipsize(status, x2 - x1 - 150), x1 + 22, ty, Theme.MUTED);
+        String shown = ui.ellipsize(status, x2 - x1 - 150);
+        boolean hov = offline && ui.hover(x1 + 10, y1 + 3, x1 + 24 + ui.g.width(shown), y1 + 21);
+        ui.text(shown, x1 + 22, ty, hov ? Theme.TEXT : Theme.MUTED);
+        if (offline) ui.hit(x1 + 10, y1 + 3, x1 + 24 + ui.g.width(shown), y1 + 21, () -> tab = 3);
 
         ui.button(x2 - 120, y1 + 4, 54, 18, "Yenile", Ui.Style.GHOST, true, PantialClient::refreshNow);
         ui.button(x2 - 62, y1 + 4, 54, 18, "Kapat", Ui.Style.NORMAL, true, platform::closeMenu);
@@ -237,7 +245,7 @@ public final class PantialMenu {
     }
 
     private static int rank(PantialClient.FriendStatus s) {
-        if (s == null) return 0;
+        if (s == null || !s.mutual()) return 0;
         return s.joinable() ? 3 : s.online ? 2 : 1;
     }
 
@@ -250,7 +258,7 @@ public final class PantialMenu {
 
     private void friendRow(String code, int x1, int y, int x2) {
         PantialClient.FriendStatus f = status(code);
-        boolean known = f != null && f.username != null && !"Bilinmeyen Oyuncu".equals(f.username);
+        boolean known = f != null && f.mutual() && f.username != null && !f.username.isEmpty();
         String name = known ? f.username : code;
 
         boolean hov = ui.hover(x1, y, x2, y + ROW_H - 4);
@@ -262,9 +270,12 @@ public final class PantialMenu {
         if (f == null) {
             statusColor = Theme.FAINT;
             statusText = "bekleniyor";
-        } else if (!known) {
-            statusColor = Theme.FAINT;
-            statusText = "henüz hiç görülmedi";
+        } else if ("unknown".equals(f.state)) {
+            statusColor = Theme.RED;
+            statusText = "bu kodla kayıtlı oyuncu yok";
+        } else if (!f.mutual()) {
+            statusColor = Theme.YELLOW;
+            statusText = "istek gönderildi, kabul etmesi bekleniyor";
         } else if (f.joinable()) {
             statusColor = Theme.GREEN;
             statusText = "dünyası açık";
@@ -296,7 +307,7 @@ public final class PantialMenu {
             ui.button(bx, y + 4, 46, 18, "Katıl", Ui.Style.PRIMARY, true,
                     () -> platform.connect(f.tunnelUrl, name + " - Pantial"));
         }
-        boolean canInvite = f != null && f.online && !f.joinable() && !LanState.tunnelUrl.isEmpty();
+        boolean canInvite = f != null && f.mutual() && f.online && !f.joinable() && !LanState.tunnelUrl.isEmpty();
         if (canInvite) {
             Long at = invitedAt.get(code);
             boolean sent = at != null && System.currentTimeMillis() - at < 5000;
@@ -328,7 +339,7 @@ public final class PantialMenu {
         switch (PantialProfile.getInstance().addFriend(code)) {
             case ADDED -> {
                 addField.set("");
-                flash(code + " eklendi", Theme.GREEN);
+                flash(code + " için arkadaşlık isteği gönderildi", Theme.GREEN);
                 PantialClient.refreshNow();
             }
             case INVALID -> flash("Kod PANT-XXXX biçiminde olmalı", Theme.RED);
@@ -337,30 +348,56 @@ public final class PantialMenu {
         }
     }
 
-    // ------------------------------------------------------------------ Davetler
+    // ------------------------------------------------------------------ Istekler
 
     private void invitesTab(int x1, int y1, int x2, int y2) {
+        List<PantialClient.FriendRequest> reqs = List.copyOf(PantialClient.requests);
         List<PantialClient.InviteStatus> invites = List.copyOf(PantialClient.invites);
-        if (invites.isEmpty()) {
-            empty(x1, y1, x2, y2, "Bekleyen davet yok",
-                    "Bir arkadaşın seni dünyasına çağırınca burada görünecek.");
+        if (reqs.isEmpty() && invites.isEmpty()) {
+            empty(x1, y1, x2, y2, "Bekleyen istek yok",
+                    "Arkadaşlık istekleri ve dünya davetleri burada görünecek.");
             return;
         }
-        list(x1, y1, x2, y2, invites.size(), (i, y) -> {
-            PantialClient.InviteStatus inv = invites.get(i);
+        list(x1, y1, x2, y2, reqs.size() + invites.size(), (i, y) -> {
             boolean hov = ui.hover(x1, y, x2, y + ROW_H - 4);
             ui.round(x1, y, x2, y + ROW_H - 4, hov ? Theme.CARD_HOVER : Theme.CARD);
-            avatar(inv.senderName, x1 + 4, y + 3);
             int bx = x2 - 4 - 50;
-            ui.button(bx, y + 4, 50, 18, "Reddet", Ui.Style.GHOST, true, () -> PantialClient.dismissInvite(inv));
-            bx -= 50;
-            ui.button(bx, y + 4, 46, 18, "Katıl", Ui.Style.PRIMARY, true, () -> {
-                PantialClient.dismissInvite(inv);
-                platform.connect(inv.tunnelUrl, inv.senderName + " - Pantial");
-            });
+            String title, sub;
+            int subColor;
+            if (i < reqs.size()) {
+                PantialClient.FriendRequest r = reqs.get(i);
+                avatar(r.username, x1 + 4, y + 3);
+                ui.button(bx, y + 4, 50, 18, "Reddet", Ui.Style.GHOST, true, () -> {
+                    PantialProfile.getInstance().decline(r.userCode);
+                    PantialClient.requests.remove(r);
+                });
+                bx -= 54;
+                ui.button(bx, y + 4, 50, 18, "Kabul", Ui.Style.PRIMARY, true, () -> {
+                    PantialProfile.getInstance().addFriend(r.userCode);
+                    PantialClient.requests.remove(r);
+                    flash(r.username + " artık arkadaşın", Theme.GREEN);
+                    PantialClient.refreshNow();
+                });
+                title = r.username + " seni arkadaş olarak eklemek istiyor";
+                sub = "arkadaşlık isteği  " + r.userCode;
+                subColor = Theme.YELLOW;
+            } else {
+                PantialClient.InviteStatus inv = invites.get(i - reqs.size());
+                avatar(inv.senderName, x1 + 4, y + 3);
+                ui.button(bx, y + 4, 50, 18, "Reddet", Ui.Style.GHOST, true, () -> PantialClient.dismissInvite(inv));
+                bx -= 54;
+                ui.button(bx, y + 4, 50, 18, "Katıl", Ui.Style.PRIMARY, true, () -> {
+                    PantialClient.dismissInvite(inv);
+                    platform.connect(inv.tunnelUrl, inv.senderName + " - Pantial");
+                });
+                title = inv.senderName + " seni dünyasına çağırıyor";
+                sub = "dünya daveti · " + ago(inv.timestamp);
+                subColor = Theme.GREEN;
+            }
             int tw = bx - x1 - 36;
-            ui.text(ui.ellipsize(inv.senderName + " seni dünyasına çağırıyor", tw), x1 + 30, y + 4, Theme.TEXT);
-            ui.text(ago(inv.timestamp), x1 + 30, y + 14, Theme.MUTED);
+            ui.text(ui.ellipsize(title, tw), x1 + 30, y + 4, Theme.TEXT);
+            ui.dot(x1 + 30, y + 15, subColor);
+            ui.text(ui.ellipsize(sub, tw - 8), x1 + 38, y + 14, Theme.MUTED);
         });
     }
 
@@ -384,72 +421,172 @@ public final class PantialMenu {
                     "Paylaşım yalnızca kendi tek oyunculu dünyanda çalışır.");
             return;
         }
-        boolean e4mc = platform.isModLoaded("e4mc");
+        if (state == Platform.WorldState.PUBLISHED) publishedView(x1, y1, x2, y2);
+        else setupView(x1, y1, x2, y2);
+    }
 
-        if (state == Platform.WorldState.PUBLISHED) {
-            int y = y1;
-            ui.round(x1, y, x2, y + 44, Theme.CARD);
-            ui.g.fill(x1, y + 1, x1 + 2, y + 43, Theme.GREEN);
-            ui.text("Dünyan paylaşımda", x1 + 10, y + 6, Theme.TEXT);
-            ui.text("Yerel port " + platform.publishedPort()
-                    + (LanState.onlineMode ? "  ·  kimlik doğrulama açık" : "  ·  kimlik doğrulama KAPALI"), x1 + 10, y + 18,
-                    LanState.onlineMode ? Theme.MUTED : Theme.YELLOW);
-            String url = LanState.tunnelUrl;
-            String addr = !url.isEmpty() ? url : (e4mc ? "tünel adresi bekleniyor..." : "e4mc yüklü değil: yalnızca aynı ağdan girilebilir");
-            ui.text(ui.ellipsize(addr, x2 - x1 - 90), x1 + 10, y + 30, url.isEmpty() ? Theme.FAINT : Theme.ACCENT);
-            ui.button(x2 - 72, y + 13, 66, 18, "Kopyala", Ui.Style.NORMAL, !url.isEmpty(), () -> {
-                platform.setClipboard(url);
-                flash("Adres panoya kopyalandı", Theme.GREEN);
-            });
-            y += 52;
-
-            ui.text("Arkadaşlara duyur", x1 + 2, y + 2, Theme.TEXT);
-            ui.text(PantialClient.isAnnounced() ? "arkadaş listende \"dünyası açık\" görünüyorsun" : "duyurulmuyor",
-                    x1 + 2, y + 13, Theme.MUTED);
-            ui.toggle(x2 - 24, y + 4, LanState.announce, () -> LanState.announce = !LanState.announce);
-            y += 30;
-
-            List<PantialClient.FriendStatus> online = PantialClient.friends.stream().filter(f -> f.online && !f.joinable()).toList();
-            ui.button(x1, y, x2 - x1, 20, online.isEmpty() ? "Davet edilecek çevrim içi arkadaş yok"
-                            : "Çevrim içi " + online.size() + " arkadaşı davet et", Ui.Style.PRIMARY,
-                    !online.isEmpty() && !url.isEmpty(), () -> {
-                        online.forEach(f -> PantialClient.sendInvite(f.userCode, null));
-                        flash(online.size() + " davet gönderildi", Theme.GREEN);
-                    });
-            return;
-        }
-
-        // SINGLEPLAYER: paylasim ayarlari
+    /** Paylasmadan once: kim girebilir, kim ne yapabilir. Iki sutun. */
+    private void setupView(int x1, int y1, int x2, int y2) {
+        int colW = (x2 - x1 - 10) / 2;
+        int lx = x1, rx = x1 + colW + 10;
         int y = y1;
-        int lw = x2 - x1;
-        if (platform.supportsGameMode()) {
-            row(x1, y, "Oyun modu", null);
-            ui.button(x2 - 110, y + 1, 110, 18, MODES[modeIndex], Ui.Style.NORMAL, true, () -> modeIndex = (modeIndex + 1) % MODES.length);
-            y += 24;
-        }
-        row(x1, y, "Hileler", null);
-        ui.toggle(x2 - 24, y + 4, cheats, () -> cheats = !cheats);
-        y += 24;
-        row(x1, y, "Kimlik doğrulama", LanState.onlineMode ? null : "Kapalıyken adresi bilen herkes istediği isimle girer");
-        ui.toggle(x2 - 24, y + 4, LanState.onlineMode, () -> LanState.onlineMode = !LanState.onlineMode);
-        y += 24;
-        row(x1, y, "Arkadaşlara duyur", null);
-        ui.toggle(x2 - 24, y + 4, LanState.announce, () -> LanState.announce = !LanState.announce);
-        y += 24;
-        row(x1, y, "Port", null);
-        portField.draw(ui, x2 - 60, y + 1, 60, 18, () -> focus(portField));
-        y += 26;
 
-        if (!e4mc) {
-            ui.text(ui.ellipsize("e4mc kurulu değil: arkadaşların yalnızca aynı ağdan bağlanabilir.", lw), x1, y, Theme.YELLOW);
-            y += 12;
+        label(lx, y, "Kimler girebilir?");
+        boolean friendsOnly = Access.mode == Access.Mode.FRIENDS;
+        ui.button(lx, y + 10, colW, 18, friendsOnly ? "Sadece arkadaşlarım" : "Adresi bilen herkes",
+                Ui.Style.NORMAL, true, () -> Access.mode = friendsOnly ? Access.Mode.ANYONE : Access.Mode.FRIENDS);
+        label(rx, y, "Komut yetkisi");
+        boolean onlyMe = Access.commands == Access.Commands.ME;
+        ui.button(rx, y + 10, colW, 18, onlyMe ? "Sadece ben" : "Herkes yönetici", onlyMe ? Ui.Style.NORMAL : Ui.Style.DANGER, true,
+                () -> Access.commands = onlyMe ? Access.Commands.EVERYONE : Access.Commands.ME);
+        y += 34;
+
+        if (platform.supportsGameMode()) {
+            label(lx, y, "Gelenlerin oyun modu");
+            ui.button(lx, y + 10, colW, 18, MODES[modeIndex], Ui.Style.NORMAL, true, () -> modeIndex = (modeIndex + 1) % MODES.length);
         }
-        ui.button(x1, Math.min(y, y2 - 22), lw, 22, "Dünyamı Paylaş", Ui.Style.PRIMARY, true, this::publish);
+        label(rx, y, "Port");
+        portField.draw(ui, rx, y + 10, colW, 18, () -> focus(portField));
+        y += 34;
+
+        toggleRow(lx, y, colW, "Arkadaşlara duyur", LanState.announce, () -> LanState.announce = !LanState.announce);
+        boolean confirming = System.currentTimeMillis() < authConfirmUntil;
+        toggleRow(rx, y, colW, confirming ? "Emin misin? Tekrar tıkla" : "Kimlik doğrulama", LanState.onlineMode, () -> {
+            if (!LanState.onlineMode) {
+                LanState.onlineMode = true;
+            } else if (System.currentTimeMillis() < authConfirmUntil) {
+                LanState.onlineMode = false;
+                authConfirmUntil = 0;
+            } else {
+                authConfirmUntil = System.currentTimeMillis() + 4000;
+            }
+        });
+        y += 22;
+
+        String note;
+        int color;
+        if (!LanState.onlineMode) {
+            note = "Kimlik doğrulama kapalı: isimler doğrulanmaz, biri arkadaşının adıyla girebilir.";
+            color = Theme.RED;
+        } else if (Access.commands == Access.Commands.EVERYONE) {
+            note = "Giren herkes yönetici olur: komut kullanabilir, oyun modunu değiştirebilir.";
+            color = Theme.RED;
+        } else if (Access.mode == Access.Mode.ANYONE) {
+            note = "Adresi bilen herkes girebilir.";
+            color = Theme.YELLOW;
+        } else if (!platform.isModLoaded("e4mc")) {
+            note = "e4mc kurulu değil: dünyan internete açılmaz, sadece aynı ağdan girilir (modrinth.com/mod/e4mc).";
+            color = Theme.YELLOW;
+        } else {
+            note = "Arkadaşın olmayan biri girmeye çalışırsa sana sorulur.";
+            color = Theme.MUTED;
+        }
+        ui.text(ui.ellipsize(note, x2 - x1), x1, y, color);
+
+        ui.button(x1, Math.max(y + 14, y2 - 22), x2 - x1, 22, "Dünyamı Paylaş", Ui.Style.PRIMARY, true, this::publish);
     }
 
     private void row(int x1, int y, String label, String warning) {
         ui.text(label, x1 + 2, y + (warning == null ? 6 : 1), Theme.TEXT);
         if (warning != null) ui.text(ui.ellipsize(warning, 260), x1 + 2, y + 11, Theme.YELLOW);
+    }
+
+    private void label(int x, int y, String text) {
+        ui.text(text, x + 1, y, Theme.MUTED);
+    }
+
+    private void toggleRow(int x, int y, int w, String text, boolean on, Runnable onClick) {
+        ui.text(ui.ellipsize(text, w - 30), x + 1, y + 3, Theme.TEXT);
+        ui.toggle(x + w - 22, y + 1, on, onClick);
+    }
+
+    /** Paylasimdayken: adres, bekleyen giris istekleri, oyuncular ve yetkileri. */
+    private void publishedView(int x1, int y1, int x2, int y2) {
+        int y = y1;
+        String url = LanState.tunnelUrl;
+        boolean e4mc = platform.isModLoaded("e4mc");
+        ui.round(x1, y, x2, y + 40, Theme.CARD);
+        ui.g.fill(x1, y + 1, x1 + 2, y + 39, Theme.GREEN);
+        ui.text("Dünyan paylaşımda", x1 + 10, y + 5, Theme.TEXT);
+        String summary = (Access.mode == Access.Mode.FRIENDS ? "sadece arkadaşlar" : "herkese açık")
+                + "  ·  " + (Access.commands == Access.Commands.ME ? "komutlar sende" : "herkes yönetici")
+                + (LanState.onlineMode ? "" : "  ·  doğrulama kapalı");
+        boolean risky = Access.mode == Access.Mode.ANYONE || Access.commands == Access.Commands.EVERYONE || !LanState.onlineMode;
+        ui.text(ui.ellipsize(summary, x2 - x1 - 90), x1 + 10, y + 16, risky ? Theme.YELLOW : Theme.MUTED);
+        String addr = !url.isEmpty() ? url : (e4mc ? "tünel adresi bekleniyor..." : "e4mc yok: sadece aynı ağdan, port " + platform.publishedPort());
+        ui.text(ui.ellipsize(addr, x2 - x1 - 90), x1 + 10, y + 27, url.isEmpty() ? Theme.FAINT : Theme.ACCENT);
+        ui.button(x2 - 72, y + 11, 66, 18, "Kopyala", Ui.Style.NORMAL, !url.isEmpty(), () -> {
+            platform.setClipboard(url);
+            flash("Adres panoya kopyalandı", Theme.GREEN);
+        });
+        y += 46;
+
+        List<PantialClient.FriendStatus> invitable = PantialClient.friends.stream()
+                .filter(f -> f.mutual() && f.online && !f.joinable()).toList();
+        ui.text("Oyuncular", x1 + 1, y + 5, Theme.TEXT);
+        ui.button(x2 - 150, y, 150, 18, invitable.isEmpty() ? "Davet edilecek kimse yok" : "Arkadaşları davet et (" + invitable.size() + ")",
+                Ui.Style.GHOST, !invitable.isEmpty() && !url.isEmpty(), () -> {
+                    invitable.forEach(f -> PantialClient.sendInvite(f.userCode, null));
+                    flash(invitable.size() + " davet gönderildi", Theme.GREEN);
+                });
+        y += 22;
+
+        List<Access.JoinRequest> reqs = List.copyOf(Access.requests);
+        List<Platform.WorldPlayer> guests = platform.worldPlayers().stream().filter(p -> !p.host).toList();
+        if (reqs.isEmpty() && guests.isEmpty()) {
+            empty(x1, y, x2, y2, "Henüz kimse yok",
+                    "Arkadaşların listelerinde \"Katıl\" düğmesiyle girebilir.");
+            return;
+        }
+        boolean everyoneOp = Access.commands == Access.Commands.EVERYONE;
+        list(x1, y, x2, y2, reqs.size() + guests.size(), (i, ry) -> {
+            boolean hov = ui.hover(x1, ry, x2, ry + ROW_H - 4);
+            if (i < reqs.size()) {
+                Access.JoinRequest r = reqs.get(i);
+                ui.round(x1, ry, x2, ry + ROW_H - 4, hov ? Theme.CARD_HOVER : Theme.CARD);
+                ui.g.fill(x1, ry + 1, x1 + 2, ry + ROW_H - 5, Theme.YELLOW);
+                avatar(r.name, x1 + 4, ry + 3);
+                int bx = x2 - 4 - 50;
+                ui.button(bx, ry + 4, 50, 18, "Reddet", Ui.Style.GHOST, true, () -> Access.deny(r));
+                bx -= 60;
+                ui.button(bx, ry + 4, 56, 18, "İzin ver", Ui.Style.PRIMARY, true, () -> {
+                    Access.approve(r);
+                    flash(r.name + " artık girebilir, tekrar bağlanması yeterli", Theme.GREEN);
+                });
+                int tw = bx - x1 - 36;
+                ui.text(ui.ellipsize(r.name, tw), x1 + 30, ry + 4, Theme.TEXT);
+                ui.dot(x1 + 30, ry + 15, Theme.YELLOW);
+                ui.text(ui.ellipsize("arkadaşın değil, girmek istiyor · " + ago(r.lastTry), tw - 8), x1 + 38, ry + 14, Theme.MUTED);
+                return;
+            }
+            Platform.WorldPlayer p = guests.get(i - reqs.size());
+            ui.round(x1, ry, x2, ry + ROW_H - 4, hov ? Theme.CARD_HOVER : Theme.CARD);
+            avatar(p.name, x1 + 4, ry + 3);
+            int bx = x2 - 4;
+            String kickKey = "kick:" + p.uuid;
+            boolean confirmKick = kickKey.equals(confirmRemove);
+            int kw = confirmKick ? 40 : 26;
+            bx -= kw;
+            ui.button(bx, ry + 4, kw, 18, confirmKick ? "At?" : "At", confirmKick ? Ui.Style.DANGER : Ui.Style.GHOST, true, () -> {
+                if (kickKey.equals(confirmRemove)) {
+                    platform.kick(p.uuid, "Dünyanın sahibi seni çıkardı.");
+                    confirmRemove = null;
+                    flash(p.name + " dünyadan çıkarıldı", Theme.MUTED);
+                } else {
+                    confirmRemove = kickKey;
+                }
+            });
+            bx -= 30;
+            boolean op = everyoneOp || p.op;
+            if (!everyoneOp) ui.toggle(bx + 2, ry + 7, p.op, () -> platform.setOp(p.uuid, p.name, !p.op));
+            String role = everyoneOp ? "yönetici (herkes)" : "Yönetici";
+            int rw = ui.g.width(role);
+            ui.text(role, bx - rw - 4, ry + 9, op ? Theme.ACCENT : Theme.FAINT);
+            int tw = bx - rw - 8 - x1 - 36;
+            ui.text(ui.ellipsize(p.name, tw), x1 + 30, ry + 4, Theme.TEXT);
+            ui.dot(x1 + 30, ry + 15, Theme.GREEN);
+            ui.text(ui.ellipsize(op ? "komut kullanabilir" : "oyuncu", tw - 8), x1 + 38, ry + 14, Theme.MUTED);
+        });
     }
 
     private void publish() {
@@ -464,9 +601,19 @@ public final class PantialMenu {
             return;
         }
         LanState.tunnelUrl = "";
-        boolean ok = platform.publishWorld(Platform.GameMode.values()[modeIndex], cheats, port);
-        if (ok) flash("Dünya " + port + " portunda açıldı", Theme.GREEN);
-        else flash("Dünya açılamadı (port kullanımda olabilir)", Theme.RED);
+        boolean everyone = Access.commands == Access.Commands.EVERYONE;
+        boolean ok = platform.publishWorld(Platform.GameMode.values()[modeIndex], everyone, port);
+        if (!ok) {
+            flash("Dünya açılamadı (port kullanımda olabilir)", Theme.RED);
+            return;
+        }
+        if (!everyone) {
+            // Komutlar yalnizca sahipte: dunya hilesiz acilmissa bile sahibe yetki ver.
+            for (Platform.WorldPlayer p : platform.worldPlayers()) {
+                if (p.host && !p.op) platform.setOp(p.uuid, p.name, true);
+            }
+        }
+        flash("Dünya " + port + " portunda açıldı", Theme.GREEN);
     }
 
     private static int freePort() {
@@ -487,7 +634,20 @@ public final class PantialMenu {
         serverField.draw(ui, x1, y, x2 - x1 - 70, 20, () -> focus(serverField));
         boolean changed = !PantialProfile.cleanUrl(serverField.value).equals(profile.serverUrl);
         ui.button(x2 - 66, y, 66, 20, "Kaydet", Ui.Style.PRIMARY, changed, this::saveServer);
-        y += 30;
+        y += 23;
+        String hint;
+        int hintColor;
+        if (PantialClient.hasContacted() && !PantialClient.isReachable()) {
+            hint = isDefaultServer()
+                    ? "Varsayılan adres bu bilgisayar. Arkadaşlarınla ortak, internetteki bir Pantial sunucusu gir."
+                    : "Bu adrese ulaşılamıyor. Adresi ve sunucunun açık olduğunu kontrol et.";
+            hintColor = Theme.RED;
+        } else {
+            hint = "Arkadaşlarınla aynı sunucu adresini kullanmalısınız.";
+            hintColor = Theme.FAINT;
+        }
+        ui.text(ui.ellipsize(hint, x2 - x1 - 4), x1 + 2, y, hintColor);
+        y += 16;
 
         row(x1, y, "Bildirimler", null);
         ui.toggle(x2 - 24, y + 4, profile.notifications, () -> {
@@ -507,6 +667,10 @@ public final class PantialMenu {
         ui.text("Minecraft " + platform.minecraftVersion(), x1 + 2, y, Theme.FAINT);
         String hint = "Ayar dosyası: config/pantial.json";
         ui.text(hint, x2 - ui.g.width(hint), y, Theme.FAINT);
+    }
+
+    private static boolean isDefaultServer() {
+        return PantialProfile.DEFAULT_SERVER.equals(PantialProfile.getInstance().serverUrl);
     }
 
     private void saveServer() {

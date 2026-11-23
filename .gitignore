@@ -31,3 +31,4 @@ Thumbs.db
 
 # Loom dev run dir
 run/
+run-guest/

@@ -37,5 +37,6 @@ public final class LanState {
         tunnelUrl = "";
         onlineMode = true;
         announce = true;
+        Access.reset();
     }
 }

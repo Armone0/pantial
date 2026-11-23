@@ -2,7 +2,7 @@ const http = require('http');
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
-const { server, players, getInvites, generateFriendCode, normalizeCode } = require('./server');
+const { server, players, getInvites, generateFriendCode, normalizeCode, rateBuckets } = require('./server');
 
 const TEST_PORT = 3999;
 const ALICE = { userCode: 'PANT-A2C4', secret: 'alice-secret-0123456789' };
@@ -89,36 +89,72 @@ test('Kimlik dogrulamasiz istekler 401 doner', async () => {
     assert.strictEqual(players[ALICE.userCode].tunnelUrl, '');
 });
 
-test('POST /api/host ve arkadas durumu', async () => {
+const MALLORY = { userCode: 'PANT-M4LR', secret: 'mallory-secret-012345678' };
+
+test('Tek tarafli ekleme: adres ve isim gizli, karsi tarafa istek olarak gider', async () => {
     assert.strictEqual((await post('/api/host', { ...ALICE, tunnelUrl: 'play.e4mc.link' })).statusCode, 200);
-    const res = await post('/api/status', { ...BOB, friendCodes: [ALICE.userCode.toLowerCase(), 'PANT-7777'] });
-    assert.strictEqual(res.statusCode, 200);
-    assert.strictEqual(res.data.friends[0].username, 'Alice');
-    assert.strictEqual(res.data.friends[0].isHosting, true);
-    assert.strictEqual(res.data.friends[0].tunnelUrl, 'play.e4mc.link');
-    assert.strictEqual(res.data.friends[1].online, false);
+    // Bob, Alice'i ekliyor; Alice henuz eklemedi
+    const bob = await post('/api/status', { ...BOB, friendCodes: [ALICE.userCode.toLowerCase(), 'PANT-7777'] });
+    assert.strictEqual(bob.statusCode, 200);
+    assert.strictEqual(bob.data.friends[0].state, 'pending');
+    assert.strictEqual(bob.data.friends[0].tunnelUrl, '');
+    assert.strictEqual(bob.data.friends[0].username, '');
+    assert.strictEqual(bob.data.friends[1].state, 'unknown');
+    // Alice'e istek olarak gorunur
+    const alice = await post('/api/status', { ...ALICE, friendCodes: [] });
+    assert.deepStrictEqual(alice.data.requests, [{ userCode: BOB.userCode, username: 'Bob' }]);
 });
 
-test('Herkese acik GET uclari tunel adresini sizdirmaz', async () => {
-    const list = await get('/api/players');
-    assert.strictEqual(list.statusCode, 200);
-    assert(list.data.players.every(p => p.tunnelUrl === undefined && p.secret === undefined));
-    const single = await get(`/api/status?userCode=${ALICE.userCode}`);
-    assert.strictEqual(single.data.isHosting, true);
-    assert.strictEqual(single.data.tunnelUrl, undefined);
+test('Reddedilen istek tekrar gosterilmez', async () => {
+    const alice = await post('/api/status', { ...ALICE, friendCodes: [], declinedCodes: [BOB.userCode] });
+    assert.strictEqual(alice.data.requests.length, 0);
+});
+
+test('Karsilikli arkadaslik: adres, isim ve UUID paylasilir', async () => {
+    await post('/api/status', { ...ALICE, friendCodes: [BOB.userCode] });
+    const bob = await post('/api/status', { ...BOB, friendCodes: [ALICE.userCode] });
+    const f = bob.data.friends[0];
+    assert.strictEqual(f.state, 'mutual');
+    assert.strictEqual(f.username, 'Alice');
+    assert.strictEqual(f.uuid, 'uuid-a');
+    assert.strictEqual(f.isHosting, true);
+    assert.strictEqual(f.tunnelUrl, 'play.e4mc.link');
+});
+
+test('Kodu bilen yabanci adresi goremez ve davet atamaz', async () => {
+    await post('/api/register', { ...MALLORY, username: 'Mallory' });
+    const m = await post('/api/status', { ...MALLORY, friendCodes: [ALICE.userCode] });
+    assert.strictEqual(m.data.friends[0].state, 'pending');
+    assert.strictEqual(m.data.friends[0].tunnelUrl, '');
+    const inv = await post('/api/invite', { ...MALLORY, to: ALICE.userCode, tunnelUrl: 'evil.e4mc.link' });
+    assert.strictEqual(inv.statusCode, 403);
+});
+
+test('Herkese acik GET uclari oyuncu bilgisi vermez', async () => {
+    assert.strictEqual((await get('/api/players')).statusCode, 404);
+    assert.strictEqual((await get(`/api/status?userCode=${ALICE.userCode}`)).statusCode, 404);
 });
 
 test('POST /api/invite: gonderen kimligi sunucudan gelir', async () => {
     const res = await post('/api/invite', { ...ALICE, from: BOB.userCode, to: BOB.userCode, tunnelUrl: 'play.e4mc.link' });
     assert.strictEqual(res.statusCode, 200);
-    const status = await post('/api/status', { ...BOB, friendCodes: [] });
+    const status = await post('/api/status', { ...BOB, friendCodes: [ALICE.userCode] });
     assert.strictEqual(status.data.invites.length, 1);
     assert.strictEqual(status.data.invites[0].senderCode, ALICE.userCode);
     assert.strictEqual(status.data.invites[0].senderName, 'Alice');
 });
 
+test('Arkadasliktan cikinca bekleyen davet de gizlenir', async () => {
+    await post('/api/status', { ...BOB, friendCodes: [] });
+    await post('/api/status', { ...BOB, friendCodes: [ALICE.userCode] });
+    // Alice, Bob'u listeden cikarirsa Bob artik daveti goremez
+    await post('/api/status', { ...ALICE, friendCodes: [] });
+    const status = await post('/api/status', { ...BOB, friendCodes: [ALICE.userCode] });
+    assert.strictEqual(status.data.invites.length, 0);
+    await post('/api/status', { ...ALICE, friendCodes: [BOB.userCode] });
+});
+
 test('POST /api/reject-invite: yalnizca alici silebilir', async () => {
-    // Alice'in istegi yalnizca Alice'e gelen davetleri hedefleyebilir
     await post('/api/reject-invite', { ...ALICE, from: ALICE.userCode });
     assert.strictEqual(getInvites().length, 1);
     await post('/api/reject-invite', { ...BOB, from: ALICE.userCode });
@@ -136,6 +172,14 @@ test('Bozuk JSON ve bilinmeyen uc', async () => {
     assert.strictEqual((await request('POST', '/api/status', null, '{bozuk')).statusCode, 400);
     assert.strictEqual((await post('/api/yok', ALICE)).statusCode, 404);
     assert.strictEqual((await get('/api/yok')).statusCode, 404);
+});
+
+test('Istek siniri asilinca 429', async () => {
+    rateBuckets.clear();
+    let last;
+    for (let i = 0; i < 130; i++) last = await post('/api/status', { ...BOB, friendCodes: [] });
+    assert.strictEqual(last.statusCode, 429);
+    rateBuckets.clear();
 });
 
 test('Mod manifesti, mixinler ve her surumun platform katmani tutarli', async () => {

@@ -45,6 +45,30 @@ public interface Platform {
 
     void setClipboard(String text);
 
+    /** Paylasilan dunyadaki bir oyuncu (menude yetki/atma listesi icin). */
+    final class WorldPlayer {
+        public final String name;
+        public final String uuid;
+        public final boolean op;
+        public final boolean host;
+
+        public WorldPlayer(String name, String uuid, boolean op, boolean host) {
+            this.name = name;
+            this.uuid = uuid;
+            this.op = op;
+            this.host = host;
+        }
+    }
+
+    /** Kendi dunyamizdaki oyuncular; dunya yoksa bos. */
+    java.util.List<WorldPlayer> worldPlayers();
+
+    /** Oyuncuya yonetici (op) yetkisi ver/al. uuid ve isim worldPlayers()'tan gelir. */
+    void setOp(String uuid, String name, boolean op);
+
+    /** Oyuncuyu dunyadan atar. */
+    void kick(String uuid, String message);
+
     /** Metin kutusu odak alinca/birakinca (26.x/SDL3'te klavyeden metin almak icin gerekli). */
     default void textInputFocus(boolean focused) {
     }

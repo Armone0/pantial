@@ -60,7 +60,18 @@ subprojects {
 			client {
 				// PANTIAL_AUTOTEST=true: ana menu acilinca Pantial menusunu acar (ekran goruntusu testleri icin)
 				vmArgs "-Dpantial.autotest=${System.getenv('PANTIAL_AUTOTEST') ?: 'false'}",
-					"-Dpantial.autotest.tab=${System.getenv('PANTIAL_TAB') ?: '0'}"
+					"-Dpantial.autotest.tab=${System.getenv('PANTIAL_TAB') ?: '0'}",
+					"-Dpantial.autotest.port=${System.getenv('PANTIAL_PORT') ?: '0'}"
+				if (System.getenv('PANTIAL_USERNAME')) programArgs '--username', System.getenv('PANTIAL_USERNAME')
+				if (System.getenv('PANTIAL_QUICKPLAY_WORLD')) programArgs '--quickPlaySingleplayer', System.getenv('PANTIAL_QUICKPLAY_WORLD')
+			}
+			// Iki oyunculu deneme icin ikinci istemci: ./gradlew :<mc>:runGuest
+			guest {
+				client()
+				name = 'Pantial Guest'
+				runDir = 'run-guest'
+				programArgs '--username', (System.getenv('PANTIAL_GUEST') ?: 'Misafir')
+				if (System.getenv('PANTIAL_JOIN')) programArgs '--quickPlayMultiplayer', System.getenv('PANTIAL_JOIN')
 			}
 		}
 	}
@@ -70,7 +81,7 @@ subprojects {
 subprojects {
 	afterEvaluate {
 		def jv = project.property('java_version').toString() as int
-		tasks.matching { it.name == 'runClient' }.configureEach {
+		tasks.matching { it.name == 'runClient' || it.name == 'runGuest' }.configureEach {
 			javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(jv >= 25 ? 25 : 21) }
 		}
 	}

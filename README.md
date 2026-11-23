@@ -6,11 +6,22 @@ Pantial; port yönlendirme (port forwarding) gerektirmeden, arkadaşlarınızla 
 
 ![Pantial menüsü](docs/menu.png)
 
+## Başlarken: neye ihtiyaç var?
+
+| | Dünyayı paylaşan | Katılan arkadaş |
+| :-- | :-- | :-- |
+| Fabric Loader + Fabric API | Gerekli | Gerekli |
+| Pantial (bu mod) | Gerekli | Gerekli (tek tıkla katılma, arkadaş listesi) |
+| [e4mc](https://modrinth.com/mod/e4mc) | **Gerekli** – dünyayı internete açan tüneli kurar | Gerekmez |
+| Ortak bir Pantial sunucusu | Gerekli | Gerekli – herkes **aynı adresi** kullanmalı |
+
+e4mc olmadan dünya yalnızca aynı ağdan (aynı Wi-Fi) görülebilir. Pantial sunucusu olmadan menü
+"Pantial sunucusu ayarlanmamış" der; kurulum için aşağıdaki **Sunucuyu internete koymak** bölümüne bak.
+
 ## İndirme
 
 [**Releases**](https://github.com/Armone0/pantial/releases) sayfasından Minecraft sürümüne uyan
 `pantial-fabric-…+<minecraft>.jar` dosyasını indirip `mods` klasörüne at.
-Gerekenler: Fabric Loader + Fabric API. Dünyayı internete açmak için [e4mc](https://modrinth.com/mod/e4mc) önerilir.
 
 | Minecraft | Jar |
 | :--- | :--- |
@@ -27,12 +38,24 @@ Gerekenler: Fabric Loader + Fabric API. Dünyayı internete açmak için [e4mc](
 
 Ana menü, duraklatma ve çok oyunculu ekranlarının sağ üstünde **Pantial** düğmesi çıkar. Menüde:
 
-- **Arkadaşlar** – `PANT-XXXX` koduyla arkadaş ekle/sil, kimin çevrim içi olduğunu ve dünyası açık olanları gör, tek tıkla katıl, kendi dünyana davet et
-- **Davetler** – gelen davetleri kabul et ya da reddet
-- **Dünyam** – tek oyunculu dünyanı paylaş (oyun modu, hileler, kimlik doğrulama, port); e4mc adresini kopyala, çevrim içi arkadaşları toplu davet et
-- **Ayarlar** – varlık sunucusu adresi, bildirimler, ana menü düğmesi
+- **Arkadaşlar** – `PANT-XXXX` koduyla arkadaşlık isteği gönder; karşı taraf kabul edince kimin çevrim içi
+  olduğunu ve dünyası açık olanları görür, tek tıkla katılır, kendi dünyana davet edersin
+- **İstekler** – gelen arkadaşlık istekleri ve dünya davetleri
+- **Dünyam** – tek oyunculu dünyanı paylaş:
+  - **Kimler girebilir?** *Sadece arkadaşlarım* (varsayılan) ya da *adresi bilen herkes*.
+    Arkadaşın olmayan biri girmeye çalışırsa reddedilir ve sana **İzin ver / Reddet** diye sorulur.
+  - **Komut yetkisi:** *Sadece ben* (varsayılan) ya da *herkes yönetici*.
+    Paylaşımdayken içerideki her oyuncu için ayrı **Yönetici** anahtarı ve **At** düğmesi var.
+  - Oyun modu, port, arkadaşlara duyurma; kimlik doğrulamayı kapatmak onay ister.
+- **Ayarlar** – Pantial sunucusu adresi, bildirimler, ana menü düğmesi
 
 Kodun sağ üstte; tıklayınca panoya kopyalanır. Ayarlar `config/pantial.json` içinde.
+
+### Güvenlik notları
+- Dünya adresi ve davetler yalnızca **karşılıklı** arkadaşlar arasında paylaşılır; kodunu bilen biri tek
+  taraflı ekleyerek adresini göremez.
+- Uzaktan senin adınla bağlanmaya çalışan biri her zaman reddedilir (Minecraft sahibi isme göre tanıdığı için).
+- *Kimlik doğrulama* kapalıyken isimler doğrulanmaz; biri bir arkadaşının adını kullanabilir. Gerekmedikçe açık bırak.
 
 ## Mimari
 
@@ -71,34 +94,38 @@ Açıklama metni `RELEASE_NOTES.md` dosyasından gelir; yeni sürümde `mod/grad
 
 ## Sunucu Kurulumu ve Çalıştırma
 
-### Hızlı Başlatma
+### Sunucuyu internete koymak
+Arkadaşlarınla kullanmak için sunucu herkesin erişebileceği bir yerde çalışmalı. Bağımlılığı yok, çok az kaynak harcar.
+
+- **Render.com (ücretsiz):** Hesabına bu repoyu bağla, *New → Blueprint* de; `render.yaml` sunucuyu kurar.
+  Çıkan `https://…onrender.com` adresini herkes oyunda **Pantial → Ayarlar**'a yazsın.
+  Ücretsiz planda sunucu 15 dakika boşta kalınca uyur; ilk bağlantı birkaç saniye sürebilir.
+- **Docker / VPS:** `docker build -t pantial-server . && docker run -p 3000:3000 pantial-server`
+  ya da doğrudan `node server.js`. Önüne HTTPS koy.
+- Bir proxy arkasındaysa (Render, Railway, Fly, nginx) `TRUST_PROXY=1` ver; yoksa istek sınırı tüm oyuncuları tek kişi sayar.
+
+### Yerelde çalıştırma
 - **Windows:** `start.bat` dosyasını çift tıklayın veya çalıştırın.
 - **Linux / macOS:** `./start.sh` veya `npm start` çalıştırın.
 
 ```bash
-# Sunucuyu başlatma
-node server.js
-
-# Test paketini çalıştırma
+node server.js   # varsayılan port 3000 (PORT ile değiştirilebilir)
 npm test
 ```
-Varsayılan olarak `3000` portunda çalışır.
 
 ### Başlıca API Endpoint'leri
-- `GET /api/health` - Sunucu durum ve aktif oyuncu istatistikleri
-- `GET /api/generate-code` - Benzersiz `PANT-XXXX` formatında arkadaş kodu üretme
-- `GET /api/players`, `GET /api/status?userCode=` - Herkese açık özet (tünel adresi içermez)
+- `GET /api/health` - Sunucu durumu ve sayılar (oyuncu bilgisi içermez)
 - `POST /api/register` - `{userCode, secret, username, uuid}` ile kayıt
-- `POST /api/host` - Yerel dünya tünel adresini duyurma
-- `POST /api/status` - Arkadaş listesi ve gelen davetleri sorgulama
-- `POST /api/invite` - Arkadaşını paylaşılan dünyaya davet etme (`to`, `tunnelUrl`)
+- `POST /api/status` - `{friendCodes, declinedCodes}` gönderir; arkadaşlar (`state`: `mutual`/`pending`/`unknown`),
+  gelen arkadaşlık istekleri ve davetler döner. Adres, isim ve UUID yalnızca `mutual` için verilir.
+- `POST /api/host`, `POST /api/stop-host` - Dünya adresini duyurma / kapatma
+- `POST /api/invite` - Karşılıklı arkadaşı davet etme (`to`, `tunnelUrl`)
 - `POST /api/reject-invite` - Sana gelen daveti kapatma (`from`)
-- `POST /api/stop-host` - Dünya paylaşımını sonlandırma
 
-**Kimlik:** İstemci ilk kayıtta rastgele bir `secret` üretir ve sunucu bunu koda bağlar. `register`
-dışındaki tüm POST istekleri `userCode` + `secret` ister; yanlışsa `401`, kod başkasına aitse `403` döner.
-Böylece biri senin kodunu alıp arkadaşlarına sahte dünya adresi duyuramaz. Kayıtlar bellekte tutulur,
-sunucu yeniden başlayınca istemciler otomatik tekrar kayıt olur. Sunucuyu internete açacaksan önüne HTTPS koy.
+**Kimlik:** İstemci ilk kayıtta rastgele bir `secret` üretir ve sunucu bunu koda bağlar. `register` dışındaki
+tüm POST istekleri `userCode` + `secret` ister; yanlışsa `401`, kod başkasına aitse `403` döner. IP başına
+dakikada 120 istek sınırı var (`PANTIAL_RATE_LIMIT`). Kayıtlar bellekte tutulur; sunucu yeniden başlayınca
+istemciler otomatik tekrar kayıt olur ve arkadaş listelerini yeniden gönderir.
 
 ---
 

@@ -1,0 +1,12 @@
+# Render.com: "New > Blueprint" ile bu repoyu secince sunucu otomatik kurulur.
+services:
+  - type: web
+    name: pantial-server
+    runtime: node
+    plan: free
+    buildCommand: "true"
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: TRUST_PROXY
+        value: "1"

@@ -32,8 +32,11 @@ public final class PantialClient {
 
     public static final List<FriendStatus> friends = new CopyOnWriteArrayList<>();
     public static final List<InviteStatus> invites = new CopyOnWriteArrayList<>();
+    public static final List<FriendRequest> requests = new CopyOnWriteArrayList<>();
 
     public static class FriendStatus {
+        /** "mutual" (karsilikli), "pending" (istek gonderildi) ya da "unknown" (kod yok). */
+        public String state;
         public String userCode;
         public String username;
         public String uuid;
@@ -41,8 +44,12 @@ public final class PantialClient {
         public boolean isHosting;
         public String tunnelUrl;
 
+        public boolean mutual() {
+            return "mutual".equals(state);
+        }
+
         public boolean joinable() {
-            return online && isHosting && tunnelUrl != null && !tunnelUrl.isEmpty();
+            return mutual() && online && isHosting && tunnelUrl != null && !tunnelUrl.isEmpty();
         }
     }
 
@@ -54,8 +61,14 @@ public final class PantialClient {
         public long timestamp;
     }
 
+    public static class FriendRequest {
+        public String userCode;
+        public String username;
+    }
+
     private static class StatusResponse {
         List<FriendStatus> friends;
+        List<FriendRequest> requests;
         List<InviteStatus> invites;
     }
 
@@ -76,7 +89,7 @@ public final class PantialClient {
     }
 
     public static long onlineFriendCount() {
-        return friends.stream().filter(f -> f.online).count();
+        return friends.stream().filter(f -> f.mutual() && f.online).count();
     }
 
     public static synchronized void start() {
@@ -117,6 +130,7 @@ public final class PantialClient {
         conflictReported = false;
         friends.clear();
         invites.clear();
+        requests.clear();
         refreshNow();
     }
 
@@ -170,6 +184,7 @@ public final class PantialClient {
         try {
             JsonObject json = new JsonObject();
             json.add("friendCodes", GSON.toJsonTree(profile.getFriendCodes()));
+            json.add("declinedCodes", GSON.toJsonTree(profile.getDeclinedCodes()));
             HttpResponse<String> response = post(profile, "/api/status", json);
             if (response.statusCode() == 200) {
                 StatusResponse status = GSON.fromJson(response.body(), StatusResponse.class);
@@ -194,12 +209,22 @@ public final class PantialClient {
             for (FriendStatus now : status.friends) {
                 for (FriendStatus before : friends) {
                     if (!before.userCode.equalsIgnoreCase(now.userCode)) continue;
-                    if (!before.online && now.online) notify("Arkadaşın çevrim içi", now.username + " oyuna girdi");
+                    if (!before.mutual() && now.mutual()) notify("Arkadaşlık kabul edildi", now.username + " artık arkadaşın");
+                    else if (!before.online && now.online) notify("Arkadaşın çevrim içi", now.username + " oyuna girdi");
                     if (!before.joinable() && now.joinable()) notify("Dünya açıldı", now.username + " dünyasını paylaştı");
                 }
             }
             friends.clear();
             friends.addAll(status.friends);
+        }
+        if (status.requests != null) {
+            for (FriendRequest r : status.requests) {
+                if (requests.stream().noneMatch(x -> x.userCode.equalsIgnoreCase(r.userCode))) {
+                    notify("Arkadaşlık isteği", r.username + " seni eklemek istiyor");
+                }
+            }
+            requests.clear();
+            requests.addAll(status.requests);
         }
         if (status.invites != null) {
             for (InviteStatus inv : status.invites) {

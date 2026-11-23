@@ -92,6 +92,53 @@ public class FabricPlatform implements Platform {
     }
 
     @Override
+    public java.util.List<WorldPlayer> worldPlayers() {
+        IntegratedServer server = mc().getSingleplayerServer();
+        java.util.List<WorldPlayer> out = new java.util.ArrayList<>();
+        if (server == null) return out;
+        try {
+            for (net.minecraft.server.level.ServerPlayer p : new java.util.ArrayList<>(server.getPlayerList().getPlayers())) {
+                var prof = p.getGameProfile();
+                boolean host = server.isSingleplayerOwner(prof);
+                out.add(new WorldPlayer(prof.getName(), String.valueOf(prof.getId()), server.getPlayerList().isOp(prof), host));
+            }
+        } catch (RuntimeException ignored) {
+            // liste sunucu thread'inde degisirken okunduysa bir sonraki karede tekrar denenir
+        }
+        return out;
+    }
+
+    private static net.minecraft.server.level.ServerPlayer findPlayer(IntegratedServer server, String uuid) {
+        for (net.minecraft.server.level.ServerPlayer p : server.getPlayerList().getPlayers()) {
+            var prof = p.getGameProfile();
+            if (String.valueOf(prof.getId()).equals(uuid)) return p;
+        }
+        return null;
+    }
+
+    @Override
+    public void setOp(String uuid, String name, boolean op) {
+        IntegratedServer server = mc().getSingleplayerServer();
+        if (server == null) return;
+        server.execute(() -> {
+            net.minecraft.server.level.ServerPlayer p = findPlayer(server, uuid);
+            if (p == null) return;
+            if (op) server.getPlayerList().op(p.getGameProfile());
+            else server.getPlayerList().deop(p.getGameProfile());
+        });
+    }
+
+    @Override
+    public void kick(String uuid, String message) {
+        IntegratedServer server = mc().getSingleplayerServer();
+        if (server == null) return;
+        server.execute(() -> {
+            net.minecraft.server.level.ServerPlayer p = findPlayer(server, uuid);
+            if (p != null) p.connection.disconnect(new TextComponent(message));
+        });
+    }
+
+    @Override
     public String getClipboard() {
         return mc().keyboardHandler.getClipboard();
     }

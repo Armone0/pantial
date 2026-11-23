@@ -24,15 +24,26 @@ Dünyayı internete açmak için [e4mc](https://modrinth.com/mod/e4mc) önerilir
 | `+26.2` | 26.2.x |
 | `+26.3` | 26.3.x |
 
-`pantial-server.zip`: kendi varlık sunucunu çalıştırmak için (Node.js 18+, `node server.js`).
-Oyunda **Pantial → Ayarlar** kısmından sunucu adresini girin.
+**Dünyayı paylaşan kişide [e4mc](https://modrinth.com/mod/e4mc) olmalı** (dünyayı internete açar; katılanlarda gerekmez).
+Herkes aynı **Pantial sunucusunu** kullanmalı: `pantial-server.zip` içindeki sunucuyu bir yere kur
+(README'de Render.com için tek tıklık kurulum var) ve adresini oyunda **Pantial → Ayarlar**'a yaz.
 
-Her jar, kendi sürümünün geliştirme istemcisinde açılıp menüde tıklama, kod yazma, arkadaş ekleme/silme ve
-kapatma adımlarıyla denendi. Gerçek iki oyunculu bağlantı (e4mc üzerinden katılma) henüz elle test edilmedi.
+Her jar, kendi sürümünün geliştirme istemcisinde menüde tıklama, kod yazma, arkadaş ekleme/silme ve kapatma
+adımlarıyla denendi. Ev sahibi + misafir iki istemcili deneme (reddetme, onaylama, yönetici yapma, atma)
+1.21.10 ve 1.20.1 üzerinde yapıldı; e4mc tüneli üzerinden internetten bağlanma elle test edilmedi.
 
-### Yenilikler
-- Yeni Pantial menüsü: Arkadaşlar, Davetler, Dünyam ve Ayarlar sekmeleri
-- Arkadaş kodu ekleme/silme, tek tıkla dünyaya katılma, davet gönderme/kabul etme
-- Dünyam sekmesinden dünyayı paylaşma (oyun modu, hileler, kimlik doğrulama, port)
-- Ana menü, duraklatma ve çok oyunculu ekranlarında Pantial düğmesi
-- Kod sahipliği: başkası senin `PANT-XXXX` kodunu ele geçiremez
+### 1.2.0'daki yenilikler
+- **Kimler girebilir?** Varsayılan *sadece arkadaşlarım*. Arkadaşın olmayan biri girmeye çalışırsa reddedilir,
+  sana bildirim gelir ve Dünyam sekmesinden **İzin ver** diyebilirsin.
+- **Oyuncu bazlı yetki:** "Hileler herkese açık" yerine komutlar varsayılan olarak yalnızca sende; içerideki
+  her oyuncu için **Yönetici** anahtarı ve **At** düğmesi.
+- **Arkadaşlık istekleri:** Kod eklemek istek gönderir; karşı taraf kabul edince arkadaş olursunuz.
+  Dünya adresi, isim ve davetler yalnızca karşılıklı arkadaşlar arasında görünür.
+- Uzaktan sahibin adıyla bağlanma engellendi; kimlik doğrulamayı kapatmak onay istiyor.
+- "Sunucu ayarlanmamış" ve "e4mc yok" durumları menüde açıkça anlatılıyor.
+- Sunucu: IP başına istek sınırı, herkese açık uçlardan oyuncu bilgisi kaldırıldı, Render/Docker kurulum dosyaları.
+
+**Uyumluluk:** Sunucu protokolü değişti; arkadaşlarınızla birlikte 1.2.0'a geçin ve sunucuyu da güncelleyin.
+
+### 1.1.0
+- Yeni Pantial menüsü, 15 Minecraft sürümü, kod sahipliği

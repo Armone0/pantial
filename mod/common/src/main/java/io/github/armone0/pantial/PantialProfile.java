@@ -29,6 +29,8 @@ public class PantialProfile {
     /** Sunucuya ilk kayitta baglanir; baskasi ayni kodu sahiplenemesin diye. Paylasmayin. */
     public String secret = "";
     public List<String> friendCodes = new ArrayList<>();
+    /** Reddedilen arkadaslik istekleri; sunucu bunlari tekrar gostermez. */
+    public List<String> declinedCodes = new ArrayList<>();
     public String serverUrl = DEFAULT_SERVER;
     public boolean notifications = true;
     public boolean titleButton = true;
@@ -57,6 +59,13 @@ public class PantialProfile {
                         for (String c : loaded.friendCodes) {
                             String n = normalize(c);
                             if (isValidCode(n) && !friendCodes.contains(n)) friendCodes.add(n);
+                        }
+                    }
+                    declinedCodes = new ArrayList<>();
+                    if (loaded.declinedCodes != null) {
+                        for (String c : loaded.declinedCodes) {
+                            String n = normalize(c);
+                            if (isValidCode(n) && !declinedCodes.contains(n)) declinedCodes.add(n);
                         }
                     }
                     serverUrl = cleanUrl(loaded.serverUrl);
@@ -104,12 +113,25 @@ public class PantialProfile {
         if (n.equals(myUserCode)) return AddResult.SELF;
         if (friendCodes.contains(n)) return AddResult.DUPLICATE;
         friendCodes.add(n);
+        declinedCodes.remove(n);
         save();
         return AddResult.ADDED;
     }
 
     public synchronized void removeFriend(String code) {
         if (friendCodes.remove(normalize(code))) save();
+    }
+
+    public synchronized void decline(String code) {
+        String n = normalize(code);
+        if (isValidCode(n) && !declinedCodes.contains(n)) {
+            declinedCodes.add(n);
+            save();
+        }
+    }
+
+    public synchronized List<String> getDeclinedCodes() {
+        return new ArrayList<>(declinedCodes);
     }
 
     public synchronized List<String> getFriendCodes() {
