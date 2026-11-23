@@ -665,8 +665,8 @@ public final class PantialMenu {
         ui.g.fill(x1, y, x2, y + 1, Theme.PANEL_BORDER);
         y += 8;
         ui.text("Minecraft " + platform.minecraftVersion(), x1 + 2, y, Theme.FAINT);
-        String hint = "Ayar dosyası: config/pantial.json";
-        ui.text(hint, x2 - ui.g.width(hint), y, Theme.FAINT);
+        String file = "Ayar dosyası: config/pantial.json";
+        ui.text(file, x2 - ui.g.width(file), y, Theme.FAINT);
     }
 
     private static boolean isDefaultServer() {
