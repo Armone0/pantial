@@ -1,0 +1,20 @@
+pluginManagement {
+	repositories {
+		maven { name = 'Fabric'; url = 'https://maven.fabricmc.net/' }
+		mavenCentral()
+		gradlePluginPortal()
+	}
+}
+
+rootProject.name = 'pantial'
+
+// Her versions/<mc> klasoru ayri bir alt proje ve ayri bir jar.
+// -Ppantial.only=1.20.1,1.21.1 ile yalnizca bazilari derlenebilir.
+def only = settings.providers.gradleProperty('pantial.only').getOrNull()?.split(',')?.toList()
+file('versions').listFiles().findAll { it.isDirectory() && new File(it, 'gradle.properties').exists() }
+	.collect { it.name }.sort()
+	.findAll { only == null || only.contains(it) }
+	.each { v ->
+		include ":${v}"
+		project(":${v}").projectDir = file("versions/${v}")
+	}

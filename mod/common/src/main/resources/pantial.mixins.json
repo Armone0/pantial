@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "io.github.armone0.pantial.mixin",
+  "compatibilityLevel": "${compat}",
+  "client": [
+    "ChatComponentMixin",
+    "MinecraftServerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

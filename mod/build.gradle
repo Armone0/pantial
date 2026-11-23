@@ -1,0 +1,87 @@
+plugins {
+	id 'net.fabricmc.fabric-loom-remap' version "${loom_version}" apply false
+	id 'net.fabricmc.fabric-loom' version "${loom_version}" apply false
+}
+
+subprojects {
+	// 26.1 ve sonrasi obfuscate edilmemis geliyor: remap'siz Loom. Oncesi: Mojang mappings + remap.
+	def obf = project.property('obfuscated').toString().toBoolean()
+	apply plugin: obf ? 'net.fabricmc.fabric-loom-remap' : 'net.fabricmc.fabric-loom'
+
+	def mc = project.property('minecraft_version').toString()
+	def javaVersion = project.property('java_version').toString() as int
+	version = "${rootProject.property('mod_version')}+${mc}"
+	group = 'io.github.armone0.pantial'
+	base { archivesName = 'pantial-fabric' }
+
+	dependencies {
+		minecraft "com.mojang:minecraft:${mc}"
+		if (obf) {
+			mappings loom.officialMojangMappings()
+			modImplementation "net.fabricmc:fabric-loader:${rootProject.property('loader_version')}"
+			modImplementation "net.fabricmc.fabric-api:fabric-api:${project.property('fabric_api_version')}"
+		} else {
+			implementation "net.fabricmc:fabric-loader:${rootProject.property('loader_version')}"
+			implementation "net.fabricmc.fabric-api:fabric-api:${project.property('fabric_api_version')}"
+		}
+	}
+
+	// Ortak kod (Minecraft'a dokunmaz) + bu surumun platform katmani + varsa surume ozel dosyalar
+	sourceSets.main.java.srcDirs(
+		rootProject.file('common/src/main/java'),
+		rootProject.file("platform/${project.property('platform')}/java"))
+	sourceSets.main.resources.srcDirs(
+		rootProject.file('common/src/main/resources'),
+		rootProject.file("platform/${project.property('platform')}/resources"))
+
+	processResources {
+		def props = [
+			version : project.version,
+			mc_range: project.property('mc_range'),
+			java    : javaVersion,
+			compat  : "JAVA_${Math.min(javaVersion, 21)}"
+		]
+		inputs.properties(props)
+		filesMatching(['fabric.mod.json', 'pantial.mixins.json']) { expand(props) }
+	}
+
+	tasks.withType(JavaCompile).configureEach {
+		options.encoding = 'UTF-8'
+		options.release = javaVersion
+	}
+
+	java {
+		sourceCompatibility = JavaVersion.toVersion(javaVersion)
+		targetCompatibility = JavaVersion.toVersion(javaVersion)
+	}
+
+	loom {
+		runs {
+			client {
+				// PANTIAL_AUTOTEST=true: ana menu acilinca Pantial menusunu acar (ekran goruntusu testleri icin)
+				vmArgs "-Dpantial.autotest=${System.getenv('PANTIAL_AUTOTEST') ?: 'false'}",
+					"-Dpantial.autotest.tab=${System.getenv('PANTIAL_TAB') ?: '0'}"
+			}
+		}
+	}
+}
+
+// Eski surumler gelistirme istemcisinde Java 21 ile calissin (Java 25 eski LWJGL'i bozabiliyor)
+subprojects {
+	afterEvaluate {
+		def jv = project.property('java_version').toString() as int
+		tasks.matching { it.name == 'runClient' }.configureEach {
+			javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(jv >= 25 ? 25 : 21) }
+		}
+	}
+}
+
+// Tum surumlerin jar'larini tek klasore toplar: ./gradlew collectJars -> build/release
+tasks.register('collectJars', Copy) {
+	subprojects.each { p ->
+		def obf = p.property('obfuscated').toString().toBoolean()
+		dependsOn p.tasks.named(obf ? 'remapJar' : 'jar')
+		from(p.tasks.named(obf ? 'remapJar' : 'jar'))
+	}
+	into layout.buildDirectory.dir('release')
+}

@@ -1,0 +1,76 @@
+name: Build & Release
+
+# Her push'ta tum surumler derlenir. "v*" etiketi push'lanirsa (or. v1.1.0)
+# jar'lar ve sunucu paketi otomatik olarak GitHub Release'e eklenir.
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm test
+      - name: Sunucu paketi
+        run: |
+          mkdir -p dist/pantial-server
+          cp server.js package.json start.sh start.bat README.md dist/pantial-server/
+          cd dist && zip -r pantial-server.zip pantial-server
+      - uses: actions/upload-artifact@v4
+        with:
+          name: server
+          path: dist/pantial-server.zip
+
+  mod:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mc: ['1.18.2', '1.19.2', '1.19.4', '1.20.1', '1.20.4', '1.20.6', '1.21.1', '1.21.4',
+             '1.21.5', '1.21.8', '1.21.10', '1.21.11', '26.1.2', '26.2', '26.3']
+    defaults:
+      run:
+        working-directory: mod
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Derle (${{ matrix.mc }})
+        run: ./gradlew collectJars -Ppantial.only=${{ matrix.mc }} --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mod-${{ matrix.mc }}
+          path: mod/build/release/*.jar
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [server, mod]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - run: ls -la artifacts
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: Pantial ${{ github.ref_name }}
+          body_path: RELEASE_NOTES.md
+          files: artifacts/*
+          fail_on_unmatched_files: true

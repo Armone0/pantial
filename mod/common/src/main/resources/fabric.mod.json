@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "pantial",
+  "version": "${version}",
+  "name": "Pantial",
+  "description": "Port açmadan arkadaşlarınla oyna: arkadaş listesi, davetler ve e4mc ile tek tıkla dünya paylaşımı.",
+  "authors": ["Armone"],
+  "contact": {
+    "homepage": "https://github.com/Armone0/pantial",
+    "sources": "https://github.com/Armone0/pantial",
+    "issues": "https://github.com/Armone0/pantial/issues"
+  },
+  "icon": "assets/pantial/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["io.github.armone0.pantial.fabric.PantialFabric"]
+  },
+  "mixins": ["pantial.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.14.0",
+    "fabric-api": "*",
+    "minecraft": "${mc_range}",
+    "java": ">=${java}"
+  },
+  "suggests": {
+    "e4mc": "*"
+  }
+}
