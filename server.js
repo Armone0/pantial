@@ -46,13 +46,21 @@ setInterval(() => {
     if (invites.length < beforeCount) {
         console.log(`[Temizlik] ${beforeCount - invites.length} suresi dolmus davet temizlendi.`);
     }
-}, 10000);
+}, 10000).unref();
+
+const MAX_BODY_BYTES = 16 * 1024;
+const MAX_FRIEND_CODES = 200;
+const CODE_PATTERN = /^PANT-[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}$/;
 
 function parseJson(req) {
     return new Promise((resolve) => {
         let body = '';
         req.on('data', chunk => {
             body += chunk.toString();
+            if (body.length > MAX_BODY_BYTES) {
+                body = '';
+                req.destroy();
+            }
         });
         req.on('end', () => {
             try {
@@ -65,6 +73,18 @@ function parseJson(req) {
             resolve({});
         });
     });
+}
+
+// Kod sahipligi: ilk kayitta istemcinin gonderdigi secret koda baglanir, sonraki
+// tum yazma/okuma istekleri ayni secret'i gostermek zorunda. Boylece biri baskasinin
+// kodunu alip arkadaslarina sahte bir dunya adresi duyuramaz.
+function isValidSecret(secret) {
+    return typeof secret === 'string' && secret.length >= 16 && secret.length <= 128;
+}
+
+function authorize(userCode, secret) {
+    const p = players[userCode];
+    return !!p && isValidSecret(secret) && p.secret === secret;
 }
 
 function sendJson(res, statusCode, data) {
@@ -95,7 +115,7 @@ const server = http.createServer(async (req, res) => {
             sendJson(res, 200, {
                 status: 'ok',
                 service: 'pantial-presence-server',
-                version: '1.1.0',
+                version: require('./package.json').version,
                 uptimeSeconds: Math.floor(process.uptime()),
                 onlinePlayers: onlineCount,
                 activeHosts: hostingCount,
@@ -121,7 +141,6 @@ const server = http.createServer(async (req, res) => {
                 uuid: p.uuid,
                 online: p.online,
                 isHosting: p.isHosting,
-                tunnelUrl: p.tunnelUrl,
                 lastSeen: p.lastSeen
             }));
             sendJson(res, 200, {
@@ -142,12 +161,12 @@ const server = http.createServer(async (req, res) => {
                 sendJson(res, 200, {
                     userCode: userCode || '',
                     online: false,
-                    isHosting: false,
-                    tunnelUrl: ''
+                    isHosting: false
                 });
                 return;
             }
 
+            // Tunel adresi yalnizca kimligi dogrulanmis arkadas sorgusunda (POST /api/status) verilir.
             const p = players[userCode];
             sendJson(res, 200, {
                 userCode,
@@ -155,7 +174,6 @@ const server = http.createServer(async (req, res) => {
                 uuid: p.uuid,
                 online: p.online,
                 isHosting: p.isHosting,
-                tunnelUrl: p.tunnelUrl,
                 lastSeen: p.lastSeen
             });
             return;
@@ -165,66 +183,39 @@ const server = http.createServer(async (req, res) => {
     // --- POST Endpointleri ---
     if (req.method === 'POST') {
         const data = await parseJson(req);
-        const rawCode = data.userCode;
-        const userCode = normalizeCode(rawCode);
-
-        if (pathname === '/api/invite') {
-            const from = normalizeCode(data.from);
-            const to = normalizeCode(data.to);
-            const tunnelUrl = data.tunnelUrl;
-
-            if (!from || !to || !tunnelUrl) {
-                sendJson(res, 400, { error: 'Eksik parametreler (from, to, tunnelUrl gereklidir)' });
-                return;
-            }
-            const sender = players[from];
-            const senderName = sender ? sender.username : 'Bilinmeyen Oyuncu';
-            const senderUuid = sender ? sender.uuid : '';
-
-            // Ayni cift arasindaki eski daveti sil
-            invites = invites.filter(inv => !(inv.from === from && inv.to === to));
-
-            invites.push({
-                from,
-                senderName,
-                senderUuid,
-                to,
-                tunnelUrl,
-                timestamp: Date.now()
-            });
-            console.log(`[Davet] ${senderName} (${from}) -> (${to}) dunyaya davet etti: ${tunnelUrl}`);
-            sendJson(res, 200, { success: true });
-            return;
-        }
-
-        if (pathname === '/api/reject-invite') {
-            const from = normalizeCode(data.from);
-            const to = normalizeCode(data.to);
-            if (!from || !to) {
-                sendJson(res, 400, { error: 'Eksik parametreler (from, to gereklidir)' });
-                return;
-            }
-            invites = invites.filter(inv => !(inv.from === from && inv.to === to));
-            console.log(`[Davet Reddi] ${from} tarafindan ${to} kullanicisina yapilan davet reddedildi.`);
-            sendJson(res, 200, { success: true });
-            return;
-        }
+        const userCode = normalizeCode(data.userCode);
+        const secret = data.secret;
 
         if (pathname === '/api/register') {
-            const { username, uuid } = data;
+            const username = typeof data.username === 'string' ? data.username.trim().slice(0, 32) : '';
+            const uuid = typeof data.uuid === 'string' ? data.uuid.slice(0, 64) : '';
             if (!username) {
                 sendJson(res, 400, { error: 'Kullanici adi (username) gereklidir' });
                 return;
             }
+            if (!isValidSecret(secret)) {
+                sendJson(res, 400, { error: 'Gecerli bir secret (16-128 karakter) gereklidir' });
+                return;
+            }
+            if (userCode && !CODE_PATTERN.test(userCode)) {
+                sendJson(res, 400, { error: 'Gecersiz kod formati (PANT-XXXX)' });
+                return;
+            }
 
             const assignedCode = userCode || generateFriendCode();
+            const existing = players[assignedCode];
+            if (existing && existing.secret !== secret) {
+                sendJson(res, 403, { error: 'Bu kod baska bir oyuncuya ait' });
+                return;
+            }
 
             players[assignedCode] = {
                 username,
-                uuid: uuid || (players[assignedCode] ? players[assignedCode].uuid : ''),
+                uuid: uuid || (existing ? existing.uuid : ''),
+                secret,
                 lastSeen: Date.now(),
-                tunnelUrl: players[assignedCode] ? players[assignedCode].tunnelUrl : '',
-                isHosting: players[assignedCode] ? players[assignedCode].isHosting : false,
+                tunnelUrl: existing ? existing.tunnelUrl : '',
+                isHosting: existing ? existing.isHosting : false,
                 online: true
             };
             console.log(`[Kayit] ${username} (${assignedCode}) sisteme baglandi.`);
@@ -232,67 +223,94 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
+        const knownEndpoints = ['/api/host', '/api/stop-host', '/api/status', '/api/invite', '/api/reject-invite'];
+        if (!knownEndpoints.includes(pathname)) {
+            sendJson(res, 404, { error: 'Endpoint bulunamadi' });
+            return;
+        }
         if (!userCode) {
             sendJson(res, 400, { error: 'Gecersiz veya eksik userCode' });
             return;
         }
+        if (!authorize(userCode, secret)) {
+            // 401: istemci yeniden /api/register yapmali (orn. sunucu yeniden basladi)
+            sendJson(res, 401, { error: 'Kimlik dogrulanamadi, once /api/register' });
+            return;
+        }
+        const me = players[userCode];
+        me.lastSeen = Date.now();
+        me.online = true;
+
+        if (pathname === '/api/invite') {
+            const to = normalizeCode(data.to);
+            const tunnelUrl = typeof data.tunnelUrl === 'string' ? data.tunnelUrl.trim().slice(0, 255) : '';
+            if (!to || !tunnelUrl) {
+                sendJson(res, 400, { error: 'Eksik parametreler (to, tunnelUrl gereklidir)' });
+                return;
+            }
+
+            // Ayni cift arasindaki eski daveti sil
+            invites = invites.filter(inv => !(inv.from === userCode && inv.to === to));
+            invites.push({
+                from: userCode,
+                senderName: me.username,
+                senderUuid: me.uuid,
+                to,
+                tunnelUrl,
+                timestamp: Date.now()
+            });
+            console.log(`[Davet] ${me.username} (${userCode}) -> (${to}) dunyaya davet etti: ${tunnelUrl}`);
+            sendJson(res, 200, { success: true });
+            return;
+        }
+
+        if (pathname === '/api/reject-invite') {
+            // Yalnizca alici kendisine gelen daveti silebilir
+            const from = normalizeCode(data.from);
+            if (!from) {
+                sendJson(res, 400, { error: 'Eksik parametre (from gereklidir)' });
+                return;
+            }
+            invites = invites.filter(inv => !(inv.from === from && inv.to === userCode));
+            console.log(`[Davet Reddi] ${userCode}, ${from} kullanicisinin davetini kapatti.`);
+            sendJson(res, 200, { success: true });
+            return;
+        }
 
         if (pathname === '/api/host') {
-            const { tunnelUrl, username, uuid } = data;
-            if (!players[userCode]) {
-                players[userCode] = {
-                    username: username || 'Oyuncu',
-                    uuid: uuid || '',
-                    lastSeen: Date.now(),
-                    tunnelUrl: tunnelUrl || '',
-                    isHosting: true,
-                    online: true
-                };
-            } else {
-                players[userCode].tunnelUrl = tunnelUrl || '';
-                players[userCode].isHosting = true;
-                players[userCode].lastSeen = Date.now();
-                players[userCode].online = true;
-            }
-            console.log(`[Host] ${players[userCode].username} (${userCode}) dunya paylasimi acti: ${tunnelUrl || 'bekleniyor'}`);
+            const tunnelUrl = typeof data.tunnelUrl === 'string' ? data.tunnelUrl.trim().slice(0, 255) : '';
+            me.tunnelUrl = tunnelUrl;
+            me.isHosting = true;
+            console.log(`[Host] ${me.username} (${userCode}) dunya paylasimi acti: ${tunnelUrl || 'bekleniyor'}`);
             sendJson(res, 200, { success: true });
             return;
         }
 
         if (pathname === '/api/stop-host') {
-            if (players[userCode]) {
-                players[userCode].tunnelUrl = '';
-                players[userCode].isHosting = false;
-                players[userCode].lastSeen = Date.now();
-                console.log(`[Stop Host] ${players[userCode].username} (${userCode}) dunya paylasimini kapatti.`);
-            }
+            me.tunnelUrl = '';
+            me.isHosting = false;
+            console.log(`[Stop Host] ${me.username} (${userCode}) dunya paylasimini kapatti.`);
             sendJson(res, 200, { success: true });
             return;
         }
 
         if (pathname === '/api/status') {
-            const friendCodes = (data.friendCodes || []).map(normalizeCode);
+            const rawCodes = Array.isArray(data.friendCodes) ? data.friendCodes.slice(0, MAX_FRIEND_CODES) : [];
+            const friendCodes = rawCodes.map(normalizeCode).filter(Boolean);
 
-            // Gonderenin son gorulme ve cevrim ici bilgisini guncelle
-            if (players[userCode]) {
-                players[userCode].lastSeen = Date.now();
-                players[userCode].online = true;
-            }
-
-            // Arkadaslarin anlik durumlari
             const friendsStatus = friendCodes.map(code => {
                 const friend = players[code];
+                const online = friend ? friend.online : false;
                 return {
                     userCode: code,
                     username: friend ? friend.username : 'Bilinmeyen Oyuncu',
                     uuid: friend ? friend.uuid : '',
-                    online: friend ? friend.online : false,
-                    tunnelUrl: friend ? friend.tunnelUrl : '',
-                    isHosting: friend ? (friend.isHosting || false) : false
+                    online,
+                    tunnelUrl: friend && online ? friend.tunnelUrl : '',
+                    isHosting: friend && online ? !!friend.isHosting : false
                 };
             });
 
-            // Bu oyuncuya gelen aktif davetler
             const now = Date.now();
             const activeInvites = invites.filter(inv => inv.to === userCode && (now - inv.timestamp < INVITE_EXPIRATION_MS))
                 .map(inv => ({
@@ -317,4 +335,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { server, players, invites, generateFriendCode, normalizeCode };
+module.exports = { server, players, getInvites: () => invites, generateFriendCode, normalizeCode };

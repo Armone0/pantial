@@ -1,5 +1,7 @@
 # Minecraft 1.18.2 (Caves & Cliffs Part II) FreeLAN / Pantial Mod Entegrasyonu
 
+> **Durum: taslak.** Bu klasörde derlenebilir bir proje yok; ekran sınıfı `PantialClient`/`PantialProfile` içinde bulunmayan metotları çağırıyor ve manifestteki entrypoint/mixin sınıfları mevcut değil. Port yapılırken `mods/1.20.1/fabric` temel alınmalı.
+
 Minecraft 1.18.2, genişletilmiş dünya derinliği (Y: -64 ila 320) ve büyük dağ/mağara biyomları getiren dönüm noktası sürümlerden biridir. Pantial mod istemcisi, bu sürüm için hem **Fabric** hem de **Minecraft Forge** mod yükleyicileriyle tam uyumlu olarak yapılandırılmıştır.
 
 ---

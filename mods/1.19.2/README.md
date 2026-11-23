@@ -1,5 +1,7 @@
 # Minecraft 1.19.2 & 1.19.4 (The Wild Update) FreeLAN / Pantial Mod Entegrasyonu
 
+> **Durum: taslak.** Bu klasörde derlenebilir bir proje yok; ekran sınıfı `PantialClient`/`PantialProfile` içinde bulunmayan metotları çağırıyor ve manifestteki entrypoint/mixin sınıfları mevcut değil. Port yapılırken `mods/1.20.1/fabric` temel alınmalı.
+
 Minecraft 1.19.2 ve 1.19.4, modlama dünyasında derin mağaralar ve antik şehirler (Deep Dark) dönemi için en yaygın kullanılan mod paketi sürümlerindendir. Pantial mod istemcisi, bu sürüm için hem **Fabric** hem de **Minecraft Forge** yükleyicileriyle tam uyumlu olarak yapılandırılmıştır.
 
 ---

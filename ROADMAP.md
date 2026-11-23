@@ -1,45 +1,27 @@
-# Pantial Minecraft Çoklu Sürüm Yol Haritası (Roadmap)
+# Pantial Yol Haritası
 
-Pantial; `e4mc` tünel protokolü ile `FreeLAN` varlık/arkadaş istemcisini bir araya getirerek Minecraft'ta port açmadan yerel ağ dünyalarının paylaşılmasını sağlar.
+### Mod
 
-Her hafta sonu (Cumartesi & Pazar) otomasyon sıradaki sürüm hedefini veya altyapı geliştirmesini tamamlayıp test eder ve repoya commit atar.
+- [x] **1.20.1 Fabric** – Gradle projesi (`mods/1.20.1/fabric`), derleniyor, `runClient` ile ana menüye kadar açılıyor
+  - [x] Ana menü / duraklatma / çok oyunculu ekranlarına Pantial butonu
+  - [x] "LAN'a Aç" yerine FreeLAN ekranı (oyun modu, hileler, online-mode, port)
+  - [x] e4mc adresini sohbetten yakalayıp duyurma (yalnızca kendi dünyan açıkken)
+  - [x] Arkadaş ekleme/silme, açık dünyaya katılma, davet gönderme / kabul / ret
+  - [ ] Gerçek iki oyunculu uçtan uca deneme (e4mc ile)
+- [ ] **1.20.1 Forge** – `PantialProfile` FabricLoader kullanıyor; ortak kod + Forge Gradle projesi gerekli
+- [ ] **1.20.4 / 1.20.6 NeoForge** – yalnızca `neoforge.mods.toml` var
+- [ ] **1.19.2 / 1.19.4** – yalnızca `PantialFriendsScreen119` taslağı (var olmayan API'leri çağırıyor)
+- [ ] **1.18.2** – yalnızca `PantialFriendsScreen118` taslağı (var olmayan API'leri çağırıyor)
+- [ ] **1.21.x**, **1.16.5** – başlanmadı
 
----
+Öneri: yeni sürümlere geçmeden önce ortak kodu (profil, istemci, ağ) yükleyiciden bağımsız bir modüle ayırmak;
+sürüm başına yalnızca ekran/mixin katmanı değişsin.
 
-### Sürüm Destek Durumu
+### Sunucu
 
-- [x] **1.21.1 (Modern Standart):**
-  - [x] Fabric: Mod metadata ve FreeLAN istemci entegrasyonu
-  - [x] NeoForge: Mod yapılandırması ve Mixin eşleşmesi
-  - [x] Varlık sunucusu entegrasyonu ve tünel regex eşleşmesi
-
-- [x] **1.20.1 (LTS Mod Paketi Sürümü):**
-  - [x] Fabric: 1.20.1 FreeLAN Mixin portu (Title, Pause, ShareToLan, ChatComponent)
-  - [x] Forge: 1.20.1 uyumlu ScreenEvent dinleyicileri ve mods.toml konfigürasyonu
-  - [x] 1.20.1 ağ paketi ve ekran yöneticisi testleri (PantialFriendsScreen)
-
-- [x] **1.20.4 / 1.20.6 (Geçiş Sürümleri):**
-  - [x] Fabric & NeoForge mod manifest ve bağımlılık aralığı genişletme
-  - [x] Arayüz buton konumlandırma uyumluluğu
-
-- [x] **1.19.2 & 1.19.4 (Wild Update):**
-  - [x] Fabric & Forge 1.19.x geriye dönük uyumluluk katmanı
-  - [x] Eski ChatComponent ve Screen API adaptörleri (PoseStack & Button)
-
-- [x] **1.18.2 (Caves & Cliffs Part II):**
-  - [x] Java 17 tabanlı Fabric/Forge 1.18.2 desteği
-  - [x] TextComponent & PoseStack adaptörleri
-  - [x] e4mc tünel protokolü uyumluluk doğrulaması
-
-- [ ] **1.16.5 (Klasik Modding Temeli):**
-  - [ ] Java 8 / 1.16.5 Forge uyumluluğu
-  - [ ] Eski sunucu açma (ShareToLan) arayüzü Mixin uyarlaması
-
----
-
-### Sunucu ve Altyapı İyileştirmeleri
-- [x] `server.js`: Bağlantı kopmalarında otomatik zaman aşımı (heartbeat timeout) ekleme
-- [x] `server.js`: Arkadaş kodları için daha kısa ve akılda kalıcı format (`PANT-XXXX`) ve otomatik üretim desteği
-- [x] Otomatik kurulum ve başlatma scriptleri (Windows `start.bat` & Linux `start.sh`)
-- [x] Otomatik test paketi (`test_server.js` ve `npm test`)
-- [x] Mod içi: Sunucuya bağlanamadığında kullanıcıya hata mesajı gösteren bildirim paneli (PantialFriendsScreen118)
+- [x] Heartbeat zaman aşımı, davet süresi dolması
+- [x] `PANT-XXXX` kodları
+- [x] Kod sahipliği (`secret`), istek boyutu sınırı, açık uçlardan tünel adresi sızmaması
+- [x] `npm test`
+- [ ] Kalıcı depolama (şu an her şey bellekte)
+- [ ] Hız sınırlama

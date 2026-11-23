@@ -18,7 +18,7 @@ public class FreeLanScreen extends Screen {
 
     private GameType gameType = GameType.SURVIVAL;
     private boolean allowCommands = false;
-    private boolean onlineMode = false; // Varsayılan: Yerel ağ için çevrim dışı kimlik doğrulama modu
+    private boolean onlineMode = true; // Tunel dunyayi internete actigi icin varsayilan acik
     private boolean enableTunnel = true;
     private int port = 25565;
     private EditBox portEditBox;
@@ -53,9 +53,9 @@ public class FreeLanScreen extends Screen {
         this.addRenderableWidget(CycleButton.onOffBuilder(this.onlineMode)
                 .create(centerX - 155, 80, 150, 20, Component.literal("Kimlik Doğrulama (Online-Mode)"), (button, value) -> this.onlineMode = value));
 
-        // 4. e4mc P2P Tünel Modu
+        // 4. Dunyayi Pantial arkadas listesine duyur (e4mc adresi)
         this.addRenderableWidget(CycleButton.onOffBuilder(this.enableTunnel)
-                .create(centerX + 5, 80, 150, 20, Component.literal("e4mc Tünel"), (button, value) -> this.enableTunnel = value));
+                .create(centerX + 5, 80, 150, 20, Component.literal("Arkadaşlara Duyur"), (button, value) -> this.enableTunnel = value));
 
         // 5. Port Giriş Kutusu
         this.portEditBox = new EditBox(this.font, centerX - 155, 115, 310, 20, Component.literal("Port"));
@@ -89,8 +89,13 @@ public class FreeLanScreen extends Screen {
         IntegratedServer server = this.minecraft.getSingleplayerServer();
 
         if (server != null) {
+            if (this.port < 1024 || this.port > 65535) {
+                PantialClient.showNotification("Hata", "Geçersiz port: " + this.port);
+                return;
+            }
             LanConfig.onlineMode = this.onlineMode;
             LanConfig.enableTunnel = this.enableTunnel;
+            LanConfig.tunnelUrl = "";
 
             boolean published = server.publishServer(this.gameType, this.allowCommands, this.port);
             if (published) {

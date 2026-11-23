@@ -1,5 +1,6 @@
 # Binaries & Archives
 *.jar
+!**/gradle/wrapper/gradle-wrapper.jar
 *.war
 *.ear
 *.zip
@@ -27,3 +28,6 @@ Thumbs.db
 
 # Environment
 .env
+
+# Loom dev run dir
+run/
