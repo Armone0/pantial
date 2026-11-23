@@ -475,7 +475,7 @@ public final class PantialMenu {
             note = "Adresi bilen herkes girebilir.";
             color = Theme.YELLOW;
         } else if (!platform.isModLoaded("e4mc")) {
-            note = "e4mc kurulu değil: dünyan internete açılmaz, sadece aynı ağdan girilir (modrinth.com/mod/e4mc).";
+            note = "e4mc yok: dünyan sadece aynı ağdan görülür. (modrinth.com/mod/e4mc)";
             color = Theme.YELLOW;
         } else {
             note = "Arkadaşın olmayan biri girmeye çalışırsa sana sorulur.";
