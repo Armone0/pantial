@@ -60,8 +60,12 @@ Java 25 gerekir (26.x için); eski sürümler `--release 17/21` ile derlenir.
 
 ### Yeni sürüm yayınlama
 
-`v` ile başlayan bir etiket push'layınca (ör. `v1.1.0`) GitHub Actions tüm sürümleri derler, sunucu paketini
-hazırlar ve hepsini Release'e ekler. Açıklama metni `RELEASE_NOTES.md` dosyasından gelir.
+İki yol var, ikisi de tüm sürümleri derleyip jar'ları ve sunucu paketini Release'e ekler:
+
+- `v` ile başlayan bir etiket push'la (ör. `v1.1.0`), ya da
+- GitHub'da **Actions → Build & Release → Run workflow** deyip `release_tag` alanına etiketi yaz.
+
+Açıklama metni `RELEASE_NOTES.md` dosyasından gelir; yeni sürümde `mod/gradle.properties` içindeki `mod_version`'ı da artır.
 
 ---
 

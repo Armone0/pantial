@@ -1,13 +1,20 @@
 name: Build & Release
 
-# Her push'ta tum surumler derlenir. "v*" etiketi push'lanirsa (or. v1.1.0)
-# jar'lar ve sunucu paketi otomatik olarak GitHub Release'e eklenir.
+# Her push'ta tum surumler derlenir. Release iki yoldan olusur:
+#  - "v*" etiketi push'lanirsa (or. git tag v1.1.0 && git push origin v1.1.0)
+#  - Actions > Build & Release > Run workflow ile "release_tag" girilirse (etiketi Actions olusturur)
+# Her iki durumda da tum jar'lar ve sunucu paketi Release'e eklenir.
 on:
   push:
     branches: ['**']
     tags: ['v*']
   pull_request:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Olusturulacak Release etiketi (or. v1.1.0). Bos birakilirsa yalnizca derler.'
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -56,7 +63,7 @@ jobs:
           path: mod/build/release/*.jar
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.release_tag != ''
     needs: [server, mod]
     runs-on: ubuntu-latest
     permissions:
@@ -70,7 +77,9 @@ jobs:
       - run: ls -la artifacts
       - uses: softprops/action-gh-release@v2
         with:
-          name: Pantial ${{ github.ref_name }}
+          tag_name: ${{ inputs.release_tag || github.ref_name }}
+          target_commitish: ${{ github.sha }}
+          name: Pantial ${{ inputs.release_tag || github.ref_name }}
           body_path: RELEASE_NOTES.md
           files: artifacts/*
           fail_on_unmatched_files: true
